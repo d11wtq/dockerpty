@@ -70,14 +70,11 @@ class FileWrapper(StreamWrapper):
 
 
     def read(self, n=4096):
-        return self.fd.read(n) or self.close()
+        return os.read(self.fd.fileno(), n) or self.close()
 
 
     def write(self, data):
-        try:
-            return self.fd.write(data)
-        finally:
-            self.fd.flush()
+        os.write(self.fd.fileno(), data)
 
 
     def fileno(self):
@@ -99,11 +96,11 @@ class SocketWrapper(StreamWrapper):
 
 
     def read(self, n=4096):
-        return self.socket.recv(n) or self.close()
+        return os.read(self.socket.fileno(), n) or self.close()
 
 
     def write(self, data):
-        return self.socket.send(data)
+        return os.write(self.socket.fileno(), data)
 
 
     def fileno(self):
