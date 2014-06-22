@@ -36,7 +36,7 @@ class StreamWrapper(object):
         pass
 
 
-    def object(self):
+    def fileno(self):
         pass
 
 
@@ -80,8 +80,8 @@ class FileWrapper(StreamWrapper):
             self.fd.flush()
 
 
-    def object(self):
-        return self.fd
+    def fileno(self):
+        return self.fd.fileno()
 
 
     def _set_nonblocking(self, fd):
@@ -106,8 +106,8 @@ class SocketWrapper(StreamWrapper):
         return self.socket.send(data)
 
 
-    def object(self):
-        return self.socket
+    def fileno(self):
+        return self.socket.fileno()
 
 
 class PseudoTerminal(object):
@@ -209,17 +209,9 @@ class PseudoTerminal(object):
         write = []
         exception = []
 
-        mappings = reduce(
-            lambda acc, s: dict(acc.items() + {s.object(): s}.items()),
+        return select.select(
             read,
-            dict()
-        )
-
-        ready = select.select(
-            mappings.keys(),
             write,
             exception,
             timeout,
         )[0]
-
-        return [mappings[s] for s in ready]
