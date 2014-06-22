@@ -141,6 +141,10 @@ class PseudoTerminal(object):
         pty_sockets = self._get_pty_sockets()
         tty_sockets = self._get_tty_sockets()
 
+        # TODO: [Pipe(a, b), Pipe(a, b)]
+        #        Pipe implements fileno() for select.
+        #        pipe.flush()
+
         mappings = {
             tty_sockets['stdin']: pty_sockets['stdin'],
             pty_sockets['stdout']: tty_sockets['stdout'],
