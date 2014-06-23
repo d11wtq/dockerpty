@@ -1,0 +1,114 @@
+# docker-pyty: io.py
+#
+# Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import sys
+import os
+import fcntl
+import errno
+import select as builtin_select
+
+
+def set_blocking(fd, blocking=True):
+    """
+    Set a the given file-descriptor blocking or non-blocking.
+    """
+
+    old_flag = fcntl.fcntl(fd, fcntl.F_GETFL)
+
+    if blocking:
+        new_flag = old_flag | os.O_NONBLOCK
+    else:
+        new_flag = old_flag &~ os.O_NONBLOCK
+
+    fcntl.fcntl(fd, fcntl.F_SETFL, new_flag)
+
+
+def select(read_streams, timeout=0):
+    """
+    Select the streams from `read_streams` that are ready for reading.
+
+    Uses `select.select()` internally but returns a flat list of streams.
+    """
+
+    write_streams = []
+    exception_streams = []
+
+    return builtin_select.select(
+        read_streams,
+        write_streams,
+        exception_streams,
+        timeout,
+    )[0]
+
+
+class Pump(object):
+    """
+    Stream pump class.
+
+    A Pump wraps two file descriptors, reading from one and and writing its
+    data into the other, much like a pipe, but manually managed.
+
+    This abstraction is used to facilitate piping data between the file
+    desriptors associated with the tty, and those associated with a container's
+    allocated pty.
+
+    Pumps are selectable based on the 'read' end of the pipe.
+    """
+
+    def __init__(self, io_from, io_to):
+        """
+        Initialize a Pump with a stream to read from and another to write to.
+
+        Both streams must respond to the `fileno()` method.
+        """
+
+        self.fd_from = io_from.fileno()
+        self.fd_to = io_to.fileno()
+        # FIXME: Do this externally
+        set_blocking(self.fd_from, False)
+
+
+    def fileno(self):
+        """
+        Returns the `fileno()` of the reader end of the pump.
+
+        This is useful to allow Pumps to function with `select()`.
+        """
+
+        return self.fd_from
+
+
+    def flush(self, n=4096):
+        """
+        Flush `n` bytes of data from the reader stream to the writer stream.
+
+        Returns the number of bytes that were actually flushed. A return value
+        of zero is not an error.
+
+        If EOF has been reached, `None` is returned.
+        """
+
+        try:
+            data = os.read(self.fd_from, n)
+
+            if data:
+                os.write(self.fd_to, data)
+                return len(data)
+        except IOError as e:
+            if e.errno == errno.EWOULDBLOCK:
+                return 0
+            else:
+                raise e
