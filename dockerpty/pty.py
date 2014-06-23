@@ -64,18 +64,18 @@ class PseudoTerminal(object):
         is closed.
         """
 
-        pty_sockets = self.sockets()
+        sockets = self.sockets()
 
-        streams = [
-            io.Pump(sys.stdin, pty_sockets['stdin']),
-            io.Pump(pty_sockets['stdout'], sys.stdout),
-            io.Pump(pty_sockets['stderr'], sys.stderr),
+        pumps = [
+            io.Pump(sys.stdin, sockets['stdin']),
+            io.Pump(sockets['stdout'], sys.stdout),
+            io.Pump(sockets['stderr'], sys.stderr),
         ]
 
         with RawTerminal(sys.stdin):
             while True:
-                ready = io.select(streams)
-                if not all([s.flush() is not None for s in ready]):
+                ready = io.select(pumps)
+                if not all([p.flush() is not None for p in ready]):
                     break
 
 
