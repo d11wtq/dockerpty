@@ -24,6 +24,8 @@ import select as builtin_select
 def set_blocking(fd, blocking=True):
     """
     Set a the given file-descriptor blocking or non-blocking.
+
+    Returns the original blocking status.
     """
 
     old_flag = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -34,6 +36,8 @@ def set_blocking(fd, blocking=True):
         new_flag = old_flag &~ os.O_NONBLOCK
 
     fcntl.fcntl(fd, fcntl.F_SETFL, new_flag)
+
+    return bool(old_flag & os.O_NONBLOCK)
 
 
 def select(read_streams, timeout=0):
@@ -77,8 +81,6 @@ class Pump(object):
 
         self.fd_from = io_from.fileno()
         self.fd_to = io_to.fileno()
-        # FIXME: Do this externally
-        set_blocking(self.fd_from, False)
 
 
     def fileno(self):

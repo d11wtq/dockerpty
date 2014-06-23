@@ -72,11 +72,16 @@ class PseudoTerminal(object):
             io.Pump(sockets['stderr'], sys.stderr),
         ]
 
-        with RawTerminal(sys.stdin):
-            while True:
-                ready = io.select(pumps)
-                if not all([p.flush() is not None for p in ready]):
-                    break
+        try:
+            flags = [io.set_blocking(p, False) for p in pumps]
+
+            with RawTerminal(sys.stdin):
+                while True:
+                    ready = io.select(pumps)
+                    if not all([p.flush() is not None for p in ready]):
+                        break
+        finally:
+            [io.set_blocking(p, f) for (p, f) in zip(pumps, flags)]
 
 
     def sockets(self):
