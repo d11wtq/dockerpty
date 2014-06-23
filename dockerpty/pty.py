@@ -174,12 +174,12 @@ class PseudoTerminal(object):
         size = size or tty.size(sys.stdout)
 
         if size is not None:
-            h, w = size
+            rows, cols = size
             url = self.client._url(
                 "/containers/{0}/resize".format(container_id)
             )
 
-            self.client._post(url, params={'h': h, 'w': w})
+            self.client._post(url, params={'h': rows, 'w': cols})
 
 
     def _hijack_tty(self, pumps):
