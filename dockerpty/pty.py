@@ -167,20 +167,11 @@ class PseudoTerminal(object):
         it will be determined by the size of the current TTY.
         """
 
-        if isinstance(self.container, dict):
-            container_id = self.container['Id']
-        else:
-            container_id = self.container
-
         size = size or tty.size(sys.stdout)
 
         if size is not None:
             rows, cols = size
-            url = self.client._url(
-                "/containers/{0}/resize".format(container_id)
-            )
-
-            self.client._post(url, params={'h': rows, 'w': cols})
+            self.client.resize(self.container, height=rows, width=cols)
 
 
     def _hijack_tty(self, pumps):
