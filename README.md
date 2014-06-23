@@ -13,7 +13,10 @@ pip install dockerpty
 
 Dependencies:
 
-  * docker-py>=0.3.2
+  * docker-py>=0.3.1
+
+However, this library does not explicitly declare this dependency in PyPi for a
+number of reasons. It is assumed you have it installed.
 
 ## Usage
 

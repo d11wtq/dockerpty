@@ -33,7 +33,6 @@ setup(
     author_email='chris@w3style.co.uk',
     license='Apache 2.0',
     keywords='docker, tty, pty, terminal',
-    install_requires=[line for line in fopen('requirements.txt')],
     packages=['dockerpty'],
     classifiers=[
         'Development Status :: 3 - Alpha',
