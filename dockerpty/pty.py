@@ -22,89 +22,32 @@ import tty
 import fcntl
 import errno
 
-
-class StreamWrapper(object):
-    def __init__(self):
-        self.closed = False
-
-
-    def read(self, n):
-        pass
-
-
-    def write(self, data):
-        pass
+class Pump(object):
+    def __init__(self, io_from, io_to):
+        self.fd_from = io_from.fileno()
+        self.fd_to = io_to.fileno()
+        self._set_nonblocking(self.fd_from)
 
 
     def fileno(self):
-        pass
+        return self.fd_from
 
 
-    def close(self):
-        self.closed = True
-
-
-    def is_open(self):
-        return not self.closed
-
-
-    def pipe(self, destination):
+    def flush(self, n=4096):
         try:
-            data = self.read(4096)
+            data = os.read(self.fd_from, n)
 
-            if data is not None:
-                destination.write(data)
-            else:
-                self.closed = True
+            if data:
+                os.write(self.fd_to, data)
+                return data
         except IOError as e:
             if e.errno != errno.EWOULDBLOCK:
                 raise e
 
 
-class FileWrapper(StreamWrapper):
-    def __init__(self, fd):
-        StreamWrapper.__init__(self)
-
-        self.fd = fd
-        self._set_nonblocking(fd.fileno())
-
-
-    def read(self, n=4096):
-        return os.read(self.fd.fileno(), n) or self.close()
-
-
-    def write(self, data):
-        os.write(self.fd.fileno(), data)
-
-
-    def fileno(self):
-        return self.fd.fileno()
-
-
     def _set_nonblocking(self, fd):
         flag = fcntl.fcntl(fd, fcntl.F_GETFL)
         fcntl.fcntl(fd, fcntl.F_SETFL, flag | os.O_NONBLOCK)
-
-
-
-class SocketWrapper(StreamWrapper):
-    def __init__(self, socket):
-        StreamWrapper.__init__(self)
-
-        self.socket = socket
-        socket.setblocking(False)
-
-
-    def read(self, n=4096):
-        return os.read(self.socket.fileno(), n) or self.close()
-
-
-    def write(self, data):
-        return os.write(self.socket.fileno(), data)
-
-
-    def fileno(self):
-        return self.socket.fileno()
 
 
 class PseudoTerminal(object):
@@ -141,22 +84,19 @@ class PseudoTerminal(object):
         pty_sockets = self._get_pty_sockets()
         tty_sockets = self._get_tty_sockets()
 
-        # TODO: [Pipe(a, b), Pipe(a, b)]
-        #        Pipe implements fileno() for select.
-        #        pipe.flush()
-
-        mappings = {
-            tty_sockets['stdin']: pty_sockets['stdin'],
-            pty_sockets['stdout']: tty_sockets['stdout'],
-            pty_sockets['stderr']: tty_sockets['stderr'],
-        }
+        streams = [
+            Pump(tty_sockets['stdin'], pty_sockets['stdin']),
+            Pump(pty_sockets['stdout'], tty_sockets['stdout']),
+            Pump(pty_sockets['stderr'], tty_sockets['stderr']),
+        ]
 
         try:
             tty.setraw(sys.stdin.fileno())
 
-            while self.is_open():
-                ready = self._select_ready(mappings.keys(), timeout=0)
-                [s.pipe(mappings[s]) for s in ready]
+            while True:
+                ready = self._select_ready(streams, timeout=0)
+                if not all([s.flush() for s in ready]):
+                    break
         finally:
             termios.tcsetattr(
                 sys.stdin.fileno(),
@@ -165,25 +105,13 @@ class PseudoTerminal(object):
             )
 
 
-    def is_open(self):
-        """
-        Returns true if the pseudo-tty is not closed.
-        """
-
-        if self.pty_sockets is not None:
-            return all([s.is_open() for s in self.pty_sockets.values()])
-        else:
-            return False
-
-
     def _get_pty_sockets(self):
         def merge_socket_dict(acc, label):
             socket = self.client.attach_socket(
                 self.container,
                 {label: 1, 'stream': 1}
             )
-            wrapper = SocketWrapper(socket)
-            return dict(acc.items() + {label: wrapper}.items())
+            return dict(acc.items() + {label: socket}.items())
 
         if self.pty_sockets is None:
             self.pty_sockets = reduce(
@@ -198,9 +126,9 @@ class PseudoTerminal(object):
     def _get_tty_sockets(self):
         if self.tty_sockets is None:
             self.tty_sockets = {
-                'stdin': FileWrapper(sys.stdin),
-                'stdout': FileWrapper(sys.stdout),
-                'stderr': FileWrapper(sys.stderr),
+                'stdin': sys.stdin,
+                'stdout': sys.stdout,
+                'stderr': sys.stderr,
             }
 
         return self.tty_sockets
