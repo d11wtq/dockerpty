@@ -35,7 +35,7 @@ setup(
     keywords='docker, tty, pty, terminal',
     packages=['dockerpty'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Environment :: Console',
