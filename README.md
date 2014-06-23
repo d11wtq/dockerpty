@@ -75,7 +75,7 @@ size changes and resize the pseudo-terminal as needed.
 ## Planned
 
   * Implement the "detach" functionality provided by the official docker client
-    - Pressing <kbd><C-p</kbd><kbd>C-q</kbd> detaches from the PTY in docker
+    - Pressing <kbd>C-p</kbd><kbd>C-q</kbd> detaches from the PTY in docker
   * Any other keyboard shortcuts that users may think useful
 
 ## Copyright & Licensing
