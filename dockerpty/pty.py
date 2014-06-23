@@ -35,7 +35,7 @@ class WINCHHandler(object):
         """
 
         self.pty = pty
-        self.original_handler = signal.getsignal(signal.SIGWINCH)
+        self.original_handler = None
 
 
     def __enter__(self):
@@ -75,7 +75,8 @@ class WINCHHandler(object):
         Stop trapping WINCH signals and restore the previous WINCH handler.
         """
 
-        signal.signal(signal.SIGWINCH, self.original_handler)
+        if self.original_handler is not None:
+            signal.signal(signal.SIGWINCH, self.original_handler)
 
 
 class PseudoTerminal(object):
