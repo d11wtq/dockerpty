@@ -16,8 +16,31 @@
 
 from __future__ import absolute_import
 
+import os
 import termios
 import tty
+import fcntl
+import struct
+
+
+def size(fd):
+    """
+    Return a tuple (rows,cols) representing the size of the TTY `fd`.
+
+    The provided file descriptor should be the stdout stream of the TTY.
+
+    If the TTY size cannot be determined, returns None.
+    """
+
+    try:
+        dims = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, 'hhhh'))
+    except:
+        try:
+            dims = (os.environ['LINES'], os.environ['COLUMNS'])
+        except:
+            return
+
+    return dims
 
 
 class RawTerminal(object):

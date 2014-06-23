@@ -15,9 +15,67 @@
 # limitations under the License.
 
 import sys
+import signal
 
 import dockerpty.io as io
-from dockerpty.tty import RawTerminal
+import dockerpty.tty as tty
+
+
+class WINCHHandler(object):
+    """
+    WINCH Signal handler to keep the PTY correctly sized.
+    """
+
+    def __init__(self, pty):
+        """
+        Initialize a new WINCH handler for the given PTY.
+
+        Initializing a handler has no immediate side-effects. The `start()`
+        method must be invoked for the signals to be trapped.
+        """
+
+        self.pty = pty
+        self.original_handler = signal.getsignal(signal.SIGWINCH)
+
+
+    def __enter__(self):
+        """
+        Invoked on entering a `with` block.
+        """
+
+        self.start()
+        return self
+
+
+    def __exit__(self, *_):
+        """
+        Invoked on exiting a `with` block.
+        """
+
+        self.stop()
+
+
+    def start(self):
+        """
+        Start trapping WINCH signals and resizing the PTY.
+
+        This method saves the previous WINCH handler so it can be restored on
+        `stop()`.
+        """
+
+        def handle(signum, frame):
+            if signum == signal.SIGWINCH:
+                self.pty.resize()
+
+        self.original_handler = signal.signal(signal.SIGWINCH, handle)
+
+
+    def stop(self):
+        """
+        Stop trapping WINCH signals and restore the previous WINCH handler.
+        """
+
+        signal.signal(signal.SIGWINCH, self.original_handler)
 
 
 class PseudoTerminal(object):
@@ -40,8 +98,13 @@ class PseudoTerminal(object):
         )
         client.start(container)
 
-        # hijacks the current tty
+        # hijacks the current tty until the pty is closed
         PseudoTerminal(client, container).start()
+
+    Care is taken to ensure all file descriptors are restored on exit. For
+    example, you can attach to a running container from within a Python REPL
+    and when the container exits, the user will be returned to the Python REPL
+    without adverse effects.
     """
 
 
@@ -64,40 +127,65 @@ class PseudoTerminal(object):
         is closed.
         """
 
-        sockets = self.sockets()
+        pty_stdin, pty_stdout, pty_stderr = self.sockets()
 
         pumps = [
-            io.Pump(sys.stdin, sockets['stdin']),
-            io.Pump(sockets['stdout'], sys.stdout),
-            io.Pump(sockets['stderr'], sys.stderr),
+            io.Pump(sys.stdin, pty_stdin),
+            io.Pump(pty_stdout, sys.stdout),
+            io.Pump(pty_stderr, sys.stderr),
         ]
 
         try:
             flags = [io.set_blocking(p, False) for p in pumps]
-
-            with RawTerminal(sys.stdin):
-                while True:
-                    ready = io.select(pumps)
-                    if not all([p.flush() is not None for p in ready]):
-                        break
+            with WINCHHandler(self):
+                self._hijack_tty(pumps)
         finally:
-            [io.set_blocking(p, f) for (p, f) in zip(pumps, flags)]
+            for (pump, flag) in zip(pumps, flags):
+                io.set_blocking(pump, flag)
 
 
     def sockets(self):
         """
-        Returns a dict of sockets connected to the pty stdin, stdout & stderr.
+        Returns a tuple of sockets connected to the pty (stdin,stdout,stderr).
         """
 
-        def merge_socket_dict(acc, label):
-            socket = self.client.attach_socket(
+        def attach_socket(key):
+            return self.client.attach_socket(
                 self.container,
-                {label: 1, 'stream': 1}
+                {key: 1, 'stream': 1},
             )
-            return dict(acc.items() + {label: socket}.items())
 
-        return reduce(
-            merge_socket_dict,
-            ('stdin', 'stdout', 'stderr'),
-            dict(),
-        )
+        return map(attach_socket, ('stdin', 'stdout', 'stderr'))
+
+
+    def resize(self, size=None):
+        """
+        Resize the container's PTY.
+
+        If `size` is not None, it must be a tuple of (height,width), otherwise
+        it will be determined by the size of the current TTY.
+        """
+
+        if isinstance(self.container, dict):
+            container_id = self.container['Id']
+        else:
+            container_id = self.container
+
+        size = size or tty.size(sys.stdout)
+
+        if size is not None:
+            h, w = size
+            url = self.client._url(
+                "/containers/{0}/resize".format(container_id)
+            )
+
+            self.client._post(url, params={'h': h, 'w': w})
+
+
+    def _hijack_tty(self, pumps):
+        with tty.RawTerminal(sys.stdin):
+            self.resize()
+            while True:
+                ready = io.select(pumps, timeout=1)
+                if not all([p.flush() is not None for p in ready]):
+                    break

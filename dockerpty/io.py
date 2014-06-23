@@ -50,12 +50,20 @@ def select(read_streams, timeout=0):
     write_streams = []
     exception_streams = []
 
-    return builtin_select.select(
-        read_streams,
-        write_streams,
-        exception_streams,
-        timeout,
-    )[0]
+    try:
+        return builtin_select.select(
+            read_streams,
+            write_streams,
+            exception_streams,
+            timeout,
+        )[0]
+    except builtin_select.error as e:
+        # POSIX signals interrupt select()
+        num, msg = e.args
+        if num == errno.EINTR:
+            return []
+        else:
+            raise e
 
 
 class Pump(object):
