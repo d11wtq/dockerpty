@@ -1,4 +1,4 @@
-# docker-pyty: pty.py
+# dockerpty: pty.py
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #

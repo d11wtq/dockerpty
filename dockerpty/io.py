@@ -1,4 +1,4 @@
-# docker-pyty: io.py
+# dockerpty: io.py
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #

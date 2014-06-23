@@ -1,4 +1,4 @@
-# docker-pyty.
+# dockerpty.
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #
@@ -14,4 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .pty import PseudoTerminal
+from dockerpty.pty import PseudoTerminal
