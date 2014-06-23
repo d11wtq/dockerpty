@@ -121,7 +121,7 @@ class PseudoTerminal(object):
         """
         Present the PTY of the container inside the current process.
 
-        If the container is not running, an IOError is raised.
+        The container must be started before this method is invoked.
 
         This will take over the current process' TTY until the container's PTY
         is closed.
