@@ -15,18 +15,25 @@
 # limitations under the License.
 
 from setuptools import setup
-from os import path as p
+import os
+
+def fopen(filename):
+    return open(os.path.join(os.path.dirname(__file__), filename))
+
+def read(filename):
+    return fopen(filename).read()
 
 setup(
     name='dockerpty',
     version='0.0.1-dev',
     description='Python library to use the pseudo-tty of a docker container',
-    long_description=open(p.join(p.dirname(__file__), 'README.md')).read(),
+    long_description=read('README.md'),
     url='https://github.com/d11wtq/dockerpty',
     author='Chris Corbyn',
     author_email='chris@w3style.co.uk',
     license='Apache 2.0',
     keywords='docker, tty, pty, terminal',
+    install_requires=[line for line in fopen('requirements.txt')],
     packages=['dockerpty'],
     classifiers=[
         'Development Status :: 3 - Alpha',
