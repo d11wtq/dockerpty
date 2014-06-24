@@ -15,3 +15,13 @@
 # limitations under the License.
 
 from dockerpty.pty import PseudoTerminal
+
+
+def start(client, container):
+    """
+    Present the PTY of the container inside the current process.
+
+    This is just a wrapper for PseudoTerminal(client, container).start()
+    """
+
+    PseudoTerminal(client, container).start()

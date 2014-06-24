@@ -38,11 +38,11 @@ container = client.create_container(
 )
 client.start(container)
 
-dockerpty.PseudoTerminal(client, container).start()
+dockerpty.start(client, container)
 ```
 
-When the `PseudoTerminal` is started, control is yielded to the container's
-PTY until the container exits, or the container's PTY is closed.
+When the dockerpty is started, control is yielded to the container's PTY until
+the container exits, or the container's PTY is closed.
 
 This is a safe operation and all resources are restored back to their original
 states.
