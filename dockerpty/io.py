@@ -135,6 +135,3 @@ class Pump(object):
             except OSError as e:
                 if e.errno != errno.EINTR:
                     raise e
-            except IOError as e:
-                if e.errno != errno.EWOULDBLOCK:
-                    raise e
