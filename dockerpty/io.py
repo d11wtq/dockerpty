@@ -51,18 +51,15 @@ def select(read_streams, timeout=0):
     exception_streams = []
 
     try:
-        try:
-            return builtin_select.select(
-                read_streams,
-                write_streams,
-                exception_streams,
-                timeout,
-            )[0]
-        except builtin_select.error as e:
-            raise OSError(*e)
-    except OSError as e:
+        return builtin_select.select(
+            read_streams,
+            write_streams,
+            exception_streams,
+            timeout,
+        )[0]
+    except builtin_select.error as e:
         # POSIX signals interrupt select()
-        if e.errno == errno.EINTR:
+        if e[0] == errno.EINTR:
             return []
         else:
             raise e
@@ -113,14 +110,31 @@ class Pump(object):
         If EOF has been reached, `None` is returned.
         """
 
-        try:
-            data = os.read(self.fd_from, n)
+        return self._write(self._read(n))
 
-            if data:
+
+    def _read(self, n=4096):
+        try:
+            return os.read(self.fd_from, n)
+        except OSError as e:
+            if e.errno != errno.EINTR:
+                raise e
+        except IOError as e:
+            if e.errno != errno.EWOULDBLOCK:
+                raise e
+
+
+    def _write(self, data):
+        if not data:
+            return
+
+        while True:
+            try:
                 os.write(self.fd_to, data)
                 return len(data)
-        except IOError as e:
-            if e.errno == errno.EWOULDBLOCK:
-                return 0
-            else:
-                raise e
+            except OSError as e:
+                if e.errno != errno.EINTR:
+                    raise e
+            except IOError as e:
+                if e.errno != errno.EWOULDBLOCK:
+                    raise e
