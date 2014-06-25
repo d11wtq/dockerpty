@@ -57,6 +57,12 @@ def select(read_streams, timeout=0):
             exception_streams,
             timeout,
         )[0]
+    except OSError as e:
+        # POSIX signals interrupt select()
+        if e.errno == errno.EINTR:
+            return []
+        else:
+            raise e
     except builtin_select.error as e:
         # POSIX signals interrupt select()
         num, msg = e.args
