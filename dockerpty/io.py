@@ -73,7 +73,7 @@ class Pump(object):
     data into the other, much like a pipe, but manually managed.
 
     This abstraction is used to facilitate piping data between the file
-    desriptors associated with the tty, and those associated with a container's
+    descriptors associated with the tty, and those associated with a container's
     allocated pty.
 
     Pumps are selectable based on the 'read' end of the pipe.
