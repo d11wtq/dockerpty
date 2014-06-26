@@ -155,7 +155,7 @@ class PseudoTerminal(object):
 
         if self.raw is None:
             info = self.client.inspect_container(self.container)
-            self.raw = info['Config']['Tty']
+            self.raw = sys.stdout.isatty() and info['Config']['Tty']
 
         return self.raw
 
