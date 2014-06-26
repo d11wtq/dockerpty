@@ -32,13 +32,16 @@ def size(fd):
     If the TTY size cannot be determined, returns None.
     """
 
+    if not os.isatty(fd.fileno()):
+        return None
+
     try:
         dims = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, 'hhhh'))
     except:
         try:
             dims = (os.environ['LINES'], os.environ['COLUMNS'])
         except:
-            return
+            return None
 
     return dims
 
@@ -92,8 +95,9 @@ class RawTerminal(object):
         This method returns None immediately.
         """
 
-        self.original_attributes = termios.tcgetattr(self.fd)
-        tty.setraw(self.fd)
+        if os.isatty(self.fd.fileno()):
+            self.original_attributes = termios.tcgetattr(self.fd)
+            tty.setraw(self.fd)
 
 
     def stop(self):
