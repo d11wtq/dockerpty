@@ -46,28 +46,29 @@ def size(fd):
     return dims
 
 
-class RawTerminal(object):
+class Terminal(object):
     """
-    RawTerminal provides wrapper functionality to temporarily make the tty raw.
+    Terminal provides wrapper functionality to temporarily make the tty raw.
 
     This is useful when streaming data from a pseudo-terminal into the tty.
 
     Example:
 
-        with RawTerminal(sys.stdin):
+        with Terminal(sys.stdin, raw=True):
             do_things_in_raw_mode()
     """
 
-    def __init__(self, fd):
+    def __init__(self, fd, raw=True):
         """
-        Initialize a raw terminal for the tty with stdin attached to `fd`.
+        Initialize a terminal for the tty with stdin attached to `fd`.
 
-        Initializing the RawTerminal has no immediate side effects. The
-        `start()` method must be invoked, or `with raw_terminal:` used before
-        the terminal is affected.
+        Initializing the Terminal has no immediate side effects. The `start()`
+        method must be invoked, or `with raw_terminal:` used before the
+        terminal is affected.
         """
 
         self.fd = fd
+        self.raw = raw
         self.original_attributes = None
 
 
@@ -88,6 +89,14 @@ class RawTerminal(object):
         self.stop()
 
 
+    def israw(self):
+        """
+        Returns True if the TTY should operate in raw mode.
+        """
+
+        return self.raw
+
+
     def start(self):
         """
         Saves the current terminal attributes and makes the tty raw.
@@ -95,7 +104,7 @@ class RawTerminal(object):
         This method returns None immediately.
         """
 
-        if os.isatty(self.fd.fileno()):
+        if os.isatty(self.fd.fileno()) and self.israw():
             self.original_attributes = termios.tcgetattr(self.fd)
             tty.setraw(self.fd)
 

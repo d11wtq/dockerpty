@@ -116,6 +116,7 @@ class PseudoTerminal(object):
 
         self.client = client
         self.container = container
+        self.raw = None
 
 
     def start(self):
@@ -145,6 +146,20 @@ class PseudoTerminal(object):
                 io.set_blocking(pump, flag)
 
 
+    def israw(self):
+        """
+        Returns True if the PTY should operate in raw mode.
+
+        If the container was not started with tty=True, this will return False.
+        """
+
+        if self.raw is None:
+            info = self.client.inspect_container(self.container)
+            self.raw = info['Config']['Tty']
+
+        return self.raw
+
+
     def sockets(self):
         """
         Returns a tuple of sockets connected to the pty (stdin,stdout,stderr).
@@ -167,6 +182,9 @@ class PseudoTerminal(object):
         it will be determined by the size of the current TTY.
         """
 
+        if not self.israw():
+            return
+
         size = size or tty.size(sys.stdout)
 
         if size is not None:
@@ -178,7 +196,7 @@ class PseudoTerminal(object):
 
 
     def _hijack_tty(self, pumps):
-        with tty.RawTerminal(sys.stdin):
+        with tty.Terminal(sys.stdin, raw=self.israw()):
             self.resize()
             while True:
                 ready = io.select(pumps, timeout=1)
