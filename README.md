@@ -47,6 +47,10 @@ the container exits, or the container's PTY is closed.
 This is a safe operation and all resources are restored back to their original
 states.
 
+> **Note:** dockerpty does support attaching to non-tty containers to stream
+container output, though it is obviously not possible to 'control' the
+container if you do not allocate a pseudo-tty.
+
 ## How it works
 
 In a terminal, the three file descriptors stdin, stdout and stderr are all
@@ -79,7 +83,6 @@ size changes and resize the pseudo-terminal as needed.
 
   * Implement the "detach" functionality provided by the official docker client
     - Pressing <kbd>C-p</kbd><kbd>C-q</kbd> detaches from the PTY in docker
-  * Any other keyboard shortcuts that users may think useful
 
 ## Copyright & Licensing
 
