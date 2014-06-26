@@ -171,7 +171,10 @@ class PseudoTerminal(object):
 
         if size is not None:
             rows, cols = size
-            self.client.resize(self.container, height=rows, width=cols)
+            try:
+                self.client.resize(self.container, height=rows, width=cols)
+            except IOError: # Container already exited
+                pass
 
 
     def _hijack_tty(self, pumps):

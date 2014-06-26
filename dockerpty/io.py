@@ -110,7 +110,11 @@ class Pump(object):
         If EOF has been reached, `None` is returned.
         """
 
-        return self._write(self._read(n))
+        try:
+            return self._write(self._read(n))
+        except OSError as e:
+            if e.errno != errno.EPIPE:
+                raise e
 
 
     def _read(self, n=4096):
@@ -134,4 +138,7 @@ class Pump(object):
                 return len(data)
             except OSError as e:
                 if e.errno != errno.EINTR:
+                    raise e
+            except IOError as e:
+                if e.errno != errno.EWOULDBLOCK:
                     raise e
