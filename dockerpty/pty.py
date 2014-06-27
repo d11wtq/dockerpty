@@ -130,12 +130,15 @@ class PseudoTerminal(object):
         """
         flags = None
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
+        info = self.client.inspect_container(self.container)["Config"]
 
-        pumps = [
-            io.Pump(sys.stdin, pty_stdin),
-            io.Pump(pty_stdout, sys.stdout),
-            io.Pump(pty_stderr, sys.stderr),
+        # For some reason, the pty's become invalid if we make them in a method
+        spec = [
+            ("AttachStdin", io.Pump(sys.stdin, pty_stdin)),
+            ("AttachStdout", io.Pump(pty_stdout, sys.stdout)),
+            ("AttachStderr", io.Pump(pty_stderr, sys.stderr)),
         ]
+        pumps = [pump for check, pump in spec if info[check]]
 
         try:
             flags = [io.set_blocking(p, False) for p in pumps]
