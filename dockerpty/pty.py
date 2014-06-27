@@ -133,6 +133,7 @@ class PseudoTerminal(object):
         if not info['State']['Running']:
             raise Exception('Cannot attach to a stopped container')
 
+        flags = None
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
 
         pumps = [
@@ -146,8 +147,9 @@ class PseudoTerminal(object):
             with WINCHHandler(self):
                 self._hijack_tty(pumps)
         finally:
-            for (pump, flag) in zip(pumps, flags):
-                io.set_blocking(pump, flag)
+            if flags:
+                for (pump, flag) in zip(pumps, flags):
+                    io.set_blocking(pump, flag)
 
 
     def israw(self):
