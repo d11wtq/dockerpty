@@ -135,11 +135,12 @@ class PseudoTerminal(object):
 
         flags = None
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
+        options = {"multiplexed": not info["Config"]["AttachStdin"]}
 
         spec = [
-            ("AttachStdin", io.Pump(sys.stdin, pty_stdin)),
-            ("AttachStdout", io.Pump(pty_stdout, sys.stdout)),
-            ("AttachStderr", io.Pump(pty_stderr, sys.stderr)),
+            ("AttachStdin", io.Pump(sys.stdin, pty_stdin, **options)),
+            ("AttachStdout", io.Pump(pty_stdout, sys.stdout, **options)),
+            ("AttachStderr", io.Pump(pty_stderr, sys.stderr, **options)),
         ]
         pumps = [pump for check, pump in spec if info["Config"][check]]
 
