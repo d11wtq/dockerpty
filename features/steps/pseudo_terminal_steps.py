@@ -17,23 +17,65 @@
 from behave import *
 
 import docker
+import dockerpty
+import helpers
 import pty
+import sys
+import os
 
-@given('I am using a terminal with dimensions {rows} x {cols}')
-def step_impl(context, rows, cols):
-    master_tty, slave_tty = pty.openpty()
-    context.master_tty = master_tty
-    context.slave_tty = slave_tty
 
-@given('There is a docker container running')
-def step_impl(context):
-    client = docker.Client()
-    container = client.create_container(
+@given('I am using a TTY')
+def step_impl(ctx):
+    ctx.rows = 20
+    ctx.cols = 80
+
+
+@given('I am using a TTY with dimensions {rows} x {cols}')
+def step_impl(ctx, rows, cols):
+    ctx.rows = int(rows)
+    ctx.cols = int(cols)
+
+
+@given('I start {cmd} in a docker container with a PTY')
+def step_impl(ctx, cmd):
+    ctx.client = docker.Client()
+    ctx.container = ctx.client.create_container(
         image='busybox:latest',
-        command='/bin/sh',
+        command=cmd,
         stdin_open=True,
         tty=True,
     )
-    client.start(container)
-    context.client = client
-    context.container = container
+    ctx.client.start(ctx.container)
+
+
+@when('I start dockerpty')
+def step_impl(ctx):
+    pid, fd = pty.fork()
+
+    if pid == pty.CHILD:
+        tty = os.ttyname(0)
+        sys.stdin = open(tty, 'r')
+        sys.stdout = open(tty, 'w')
+        sys.stderr = open(tty, 'w')
+        dockerpty.start(ctx.client, ctx.container)
+    else:
+        tty = os.ttyname(fd)
+        ctx.pty = fd
+        helpers.set_pty_size(
+            ctx.pty,
+            (ctx.rows, ctx.cols)
+        )
+        ctx.pid = pid
+        helpers.wait(ctx.pty)
+
+
+@when('I send the input "{str}"')
+def step_impl(ctx, str):
+    helpers.write(ctx.pty, str)
+
+
+@then('I will see the output "{str}"')
+def step_impl(ctx, str):
+    line = helpers.printable(helpers.readline(ctx.pty))
+    print(line, str)
+    assert(line == str)
