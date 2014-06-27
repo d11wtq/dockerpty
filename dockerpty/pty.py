@@ -128,22 +128,26 @@ class PseudoTerminal(object):
         This will take over the current process' TTY until the container's PTY
         is closed.
         """
-
+        flags = None
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
+        info = self.client.inspect_container(self.container)["Config"]
 
-        pumps = [
-            io.Pump(sys.stdin, pty_stdin),
-            io.Pump(pty_stdout, sys.stdout),
-            io.Pump(pty_stderr, sys.stderr),
+        # For some reason, the pty's become invalid if we make them in a method
+        spec = [
+            ("AttachStdin", io.Pump(sys.stdin, pty_stdin)),
+            ("AttachStdout", io.Pump(pty_stdout, sys.stdout)),
+            ("AttachStderr", io.Pump(pty_stderr, sys.stderr)),
         ]
+        pumps = [pump for check, pump in spec if info[check]]
 
         try:
             flags = [io.set_blocking(p, False) for p in pumps]
             with WINCHHandler(self):
                 self._hijack_tty(pumps)
         finally:
-            for (pump, flag) in zip(pumps, flags):
-                io.set_blocking(pump, flag)
+            if flags:
+                for (pump, flag) in zip(pumps, flags):
+                    io.set_blocking(pump, flag)
 
 
     def israw(self):
@@ -199,6 +203,10 @@ class PseudoTerminal(object):
         with tty.Terminal(sys.stdin, raw=self.israw()):
             self.resize()
             while True:
-                ready = io.select(pumps, timeout=1)
-                if not all([p.flush() is not None for p in ready]):
+                try:
+                    ready = io.select(pumps, timeout=1)
+                    if not all([p.flush() is not None for p in ready]):
+                        break
+                except KeyboardInterrupt:
                     break
+
