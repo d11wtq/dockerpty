@@ -21,9 +21,5 @@ before_install:
 install:
   - pip install -r requirements-dev.txt
 
-before_script:
-  - sudo ./sekexe/run 'docker -d' &
-  - sleep 3
-
 script:
-  - behave
+  - sudo ./sekexe/run 'docker -d &; sleep 5; behave'
