@@ -1,4 +1,4 @@
-# dockerpty: pseudo_terminal_steps.py
+# dockerpty: util.py
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #
@@ -17,10 +17,10 @@
 import termios
 import struct
 import fcntl
+import select
 import os
 import re
-
-from select import select
+import time
 
 
 def set_pty_size(fd, size):
@@ -35,31 +35,37 @@ def set_pty_size(fd, size):
         struct.pack('hhhh', rows, cols, 0, 0)
     )
 
-def get_pty_size(fd):
-    """
-    Get the size of the PTY at `fd` in (rows, cols).
-    """
-
-    return struct.unpack(
-        'hh',
-        fcntl.ioctl(fd, termios.TIOCGWINSZ, 'hhhh')
-    )
-
 
 def wait(fd):
-    return select([fd], [], [], 1)[0]
+    """
+    Wait until data is ready for reading on `fd`.
+    """
+
+    return select.select([fd], [], [], 1)[0]
 
 
 def printable(text):
+    """
+    Convert text to only printable characters, as a user would see it.
+    """
+
     ansi = re.compile(r'\x1b\[[^Jm]*[Jm]')
-    return ansi.sub('', text.strip())
+    return ansi.sub('', text).rstrip()
 
 
 def write(fd, data):
+    """
+    Write `data` to the PTY at `fd`.
+    """
+
     os.write(fd, data)
 
 
 def readchar(fd):
+    """
+    Read a character from the PTY at `fd`, or nothing if no data to read.
+    """
+
     while True:
         ready = wait(fd)
         if len(ready) == 0:
@@ -70,6 +76,12 @@ def readchar(fd):
 
 
 def readline(fd):
+    """
+    Read a line from the PTY at `fd`, or nothing if no data to read.
+
+    The line includes the line ending.
+    """
+
     output = []
     while True:
         char = readchar(fd)
@@ -81,11 +93,43 @@ def readline(fd):
             return ''.join(output)
 
 
-def output(fd):
+def read(fd):
+    """
+    Read all output from the PTY at `fd`, or nothing if no data to read.
+    """
+
     output = []
     while True:
         line = readline(fd)
         if line:
             output.append(line)
         else:
-            return ''.join(output)
+            return "".join(output)
+
+
+def read_printable(fd):
+    """
+    Read all output from the PTY at `fd` as a user would see it.
+
+    Warning: This is not exhaustive; it won't render Vim, for example.
+    """
+
+    lines = read(fd).splitlines()
+    return "\n".join([printable(line) for line in lines]).lstrip("\r\n")
+
+
+def waitpid(pid, timeout=5):
+    """
+    Wait up to `timeout` seconds for `pid` to exit.
+
+    Returns False if the `pid` does not exit.
+    """
+
+    start = time.time()
+    while True:
+        _, status = os.waitpid(pid, os.WNOHANG)
+        if os.WIFEXITED(status):
+            return True
+        else:
+            if (time.time() - start) > timeout:
+                return False

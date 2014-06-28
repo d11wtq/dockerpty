@@ -14,6 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import docker
+
+
+def before_feature(ctx, feature):
+    """
+    Pulls down busybox:latest before anything is tested.
+    """
+
+    ctx.client = docker.Client()
+    ctx.client.pull('busybox:latest')
+
+
 def after_scenario(ctx, scenario):
+    """
+    Cleans up docker containers used as test fixtures after test completes.
+    """
+
     if hasattr(ctx, 'container') and hasattr(ctx, 'client'):
-        ctx.client.remove_container(ctx.container, force=True)
+        try:
+            ctx.client.remove_container(ctx.container, force=True)
+        except:
+            pass

@@ -16,12 +16,13 @@
 
 from behave import *
 
-import docker
 import dockerpty
-import helpers
+import util
 import pty
 import sys
 import os
+import signal
+import errno
 
 
 @given('I am using a TTY')
@@ -38,7 +39,6 @@ def step_impl(ctx, rows, cols):
 
 @given('I start {cmd} in a docker container with a PTY')
 def step_impl(ctx, cmd):
-    ctx.client = docker.Client()
     ctx.container = ctx.client.create_container(
         image='busybox:latest',
         command=cmd,
@@ -61,21 +61,46 @@ def step_impl(ctx):
     else:
         tty = os.ttyname(fd)
         ctx.pty = fd
-        helpers.set_pty_size(
+        util.set_pty_size(
             ctx.pty,
             (ctx.rows, ctx.cols)
         )
         ctx.pid = pid
-        helpers.wait(ctx.pty)
+        util.wait(ctx.pty)
 
 
-@when('I send the input "{str}"')
-def step_impl(ctx, str):
-    helpers.write(ctx.pty, str)
+@when('I resize the terminal to {rows} x {cols}')
+def step_impl(ctx, rows, cols):
+    ctx.rows = int(rows)
+    ctx.cols = int(cols)
+    util.set_pty_size(
+        ctx.pty,
+        (ctx.rows, ctx.cols)
+    )
+    os.kill(ctx.pid, signal.SIGWINCH)
 
 
-@then('I will see the output "{str}"')
-def step_impl(ctx, str):
-    line = helpers.printable(helpers.readline(ctx.pty))
-    print(line, str)
-    assert(line == str)
+@when('I type "{text}"')
+def step_impl(ctx, text):
+    util.write(ctx.pty, text)
+
+
+@when('I press {key}')
+def step_impl(ctx, key):
+    mappings = {
+        "enter": "\r",
+        "c-d": "\x04",
+    }
+    util.write(ctx.pty, mappings[key.lower()])
+
+
+@then('I will see the output')
+def step_impl(ctx):
+    actual = util.read_printable(ctx.pty).splitlines()
+    wanted = ctx.text.splitlines()
+    assert(actual[-len(wanted):] == wanted)
+
+
+@then('The PTY will be closed')
+def step_impl(ctx):
+    assert(util.waitpid(ctx.pid, timeout=5))

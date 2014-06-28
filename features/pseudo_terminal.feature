@@ -15,50 +15,92 @@
 # limitations under the License.
 
 Feature: Using a pseudo-terminal
+  As a user I want to be able to attach to a shell in a running docker
+  container and control it as if it is running on my own computer.
+
 
   Scenario: Starting the PTY
     Given I am using a TTY
     And I start /bin/sh in a docker container with a PTY
     When I start dockerpty
-    Then I will see the output "/ # "
+    Then I will see the output
+      """
+      / #
+      """
 
 
   Scenario: Controlling input
     Given I am using a TTY
     And I start /bin/sh in a docker container with a PTY
     When I start dockerpty
-    And I send the input "finger bob"
-    Then I will see the output "/ # finger bob"
+    And I type "whoami"
+    Then I will see the output
+      """
+      / # whoami
+      """
 
 
-  #Scenario: Starting the PTY
-  #  Given I am using a TTY with dimensions 20 x 70
-  #  And I start /bin/sh in a docker container with a PTY
-  #  When I start dockerpty
-  #  Then The PTY will have dimensions 20 x 70
+  Scenario: Controlling standard output
+    Given I am using a TTY
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I type "uname"
+    And I press ENTER
+    Then I will see the output
+      """
+      / # uname
+      Linux
+      / #
+      """
 
 
-  #Scenario: Controlling terminal output
-  #  Given I am using a terminal with dimensions 20 x 70
-  #  And There is a docker container running
-  #  When I start dockerpty
-  #  And The pseudo-terminal sends the output "MOTD"
-  #  And The pseudo-terminal sends the error "Disk full"
-  #  Then I will receive the output "MOTD"
-  #  And I will receive the error "Disk full"
+  Scenario: Controlling standard error
+    Given I am using a TTY
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I type "ls blah"
+    And I press ENTER
+    Then I will see the output
+      """
+      / # ls blah
+      ls: blah: No such file or directory
+      / #
+      """
 
 
-  #Scenario: Resizing the pseudo-terminal
-  #  Given I am using a terminal with dimensions 20 x 70
-  #  And There is a docker container running
-  #  When I start dockerpty
-  #  And I resize my terminal to 30 x 100
-  #  Then The pseudo-terminal will have dimensions 30 x 100
+  Scenario: Initializing the PTY with the correct size
+    Given I am using a TTY with dimensions 20 x 70
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I type "stty size"
+    And I press ENTER
+    Then I will see the output
+      """
+      / # stty size
+      20 70
+      / #
+      """
 
 
-  #Scenario: Closing the pseudo-terminal
-  #  Given I am using a terminal with dimensions 20 x 70
-  #  And There is a docker container running
-  #  When I start dockerpty
-  #  And I close the pseudo-terminal's input stream
-  #  Then My terminal will not be in raw mode
+  Scenario: Resizing the PTY
+    Given I am using a TTY with dimensions 20 x 70
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I resize the terminal to 30 x 100
+    And I type "stty size"
+    And I press ENTER
+    Then I will see the output
+      """
+      / # stty size
+      30 100
+      / #
+      """
+
+
+  Scenario: Terminating the PTY
+    Given I am using a TTY
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I type "exit"
+    And I press ENTER
+    Then The PTY will be closed
