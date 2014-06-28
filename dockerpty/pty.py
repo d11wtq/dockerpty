@@ -129,6 +129,10 @@ class PseudoTerminal(object):
         is closed.
         """
 
+        info = self.container_info()
+        if not info['State']['Running']:
+            raise Exception('Cannot attach to a stopped container')
+
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
 
         pumps = [
@@ -154,7 +158,7 @@ class PseudoTerminal(object):
         """
 
         if self.raw is None:
-            info = self.client.inspect_container(self.container)
+            info = self.container_info()
             self.raw = sys.stdout.isatty() and info['Config']['Tty']
 
         return self.raw
@@ -193,6 +197,14 @@ class PseudoTerminal(object):
                 self.client.resize(self.container, height=rows, width=cols)
             except IOError: # Container already exited
                 pass
+
+
+    def container_info(self):
+        """
+        Thin wrapper around client.inspect_container().
+        """
+
+        return self.client.inspect_container(self.container)
 
 
     def _hijack_tty(self, pumps):

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 Feature: Using a pseudo-terminal
   As a user I want to be able to attach to a shell in a running docker
   container and control it as if it is running on my own computer.

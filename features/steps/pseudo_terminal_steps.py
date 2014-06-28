@@ -57,8 +57,13 @@ def step_impl(ctx):
         sys.stdin = open(tty, 'r')
         sys.stdout = open(tty, 'w')
         sys.stderr = open(tty, 'w')
-        dockerpty.start(ctx.client, ctx.container)
-        sys.exit(0)
+
+        try:
+            dockerpty.start(ctx.client, ctx.container)
+        except:
+            os_.exit(1)
+        else:
+            os._exit(0)
     else:
         tty = os.ttyname(fd)
         ctx.pty = fd
