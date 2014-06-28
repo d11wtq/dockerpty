@@ -14,12 +14,10 @@ before_install:
     https://github.com/jpetazzo/sekexe/archive/c5119f039140194f70a7ffa83e039b88960818c7.zip
   - unzip sekexe.zip
   - mv sekexe-* ./sekexe
-  - sudo groupadd docker
-  - sudo usermod -aG docker `whoami`
   - sudo mkdir /var/lib/docker
 
 install:
   - pip install -r requirements-dev.txt
 
 script:
-  - sudo ./sekexe/run 'docker -d &; sleep 5; behave'
+  - sudo ./sekexe/run 'docker -d & sleep 5; behave'
