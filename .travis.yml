@@ -16,6 +16,7 @@ before_install:
   - mv sekexe-* ./sekexe
   - sudo groupadd docker
   - sudo usermod -aG docker `whoami`
+  - sudo mkdir /var/lib/docker
 
 install:
   - pip install -r requirements-dev.txt
