@@ -103,4 +103,4 @@ def step_impl(ctx):
 
 @then('The PTY will be closed')
 def step_impl(ctx):
-    assert(util.waitpid(ctx.pid, timeout=5))
+    assert(util.exit_code(ctx.pid, timeout=2) == 0)

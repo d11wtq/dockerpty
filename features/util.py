@@ -118,18 +118,18 @@ def read_printable(fd):
     return "\n".join([printable(line) for line in lines]).lstrip("\r\n")
 
 
-def waitpid(pid, timeout=5):
+def exit_code(pid, timeout=5):
     """
-    Wait up to `timeout` seconds for `pid` to exit.
+    Wait up to `timeout` seconds for `pid` to exit and return its exit code.
 
-    Returns False if the `pid` does not exit.
+    Returns -1 if the `pid` does not exit.
     """
 
     start = time.time()
     while True:
         _, status = os.waitpid(pid, os.WNOHANG)
         if os.WIFEXITED(status):
-            return True
+            return os.WEXITSTATUS(status)
         else:
             if (time.time() - start) > timeout:
-                return False
+                return -1
