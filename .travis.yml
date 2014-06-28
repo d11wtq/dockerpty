@@ -17,7 +17,7 @@ before_install:
   - rm -rf sekexe*
 
 install:
-  - pip -r requirements-dev.txt
+  - pip install -r requirements-dev.txt
 
 before_script:
   - sudo ./sekexe/run 'docker -d' >/docker.log 2>&1 &
