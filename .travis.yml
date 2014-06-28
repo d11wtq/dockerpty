@@ -16,6 +16,9 @@ before_install:
   - mv sekexe-* ./sekexe
   - sudo mkdir /var/lib/docker
 
+install:
+  - pip install -r requirements-dev.txt
+
 script:
   - |
     # prepare a little bash script for sekexe
@@ -30,9 +33,6 @@ script:
     # make sure we're in this directory
     cd $(pwd)
 
-    # install dependencies
-    pip install -r requirements-dev.txt
-
     # start docker backgrounded
     docker -d &
 
@@ -40,7 +40,7 @@ script:
     sleep 5
 
     # run the tests
-    behave
+    $(which behave)
     CMD
 
     # make the script executable
