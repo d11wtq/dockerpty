@@ -111,9 +111,29 @@ Feature: Using a pseudo-terminal
     Given I am using a TTY
     And I start /bin/sh in a docker container with a PTY
     When I start dockerpty
-    And I type "ls"
     And I press ENTER
     And I press C-p
     And I press C-q
     Then The PTY will be closed cleanly
     And The container will still be running
+
+
+  Scenario: Reattaching to the PTY
+    Given I am using a TTY
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I type "uname"
+    And I press ENTER
+    And I press C-p
+    And I press C-q
+    Then The PTY will be closed cleanly
+    When I start dockerpty
+    And I press ENTER
+    And I press UP
+    And I press ENTER
+    Then I will see the output
+      """
+      / # uname
+      Linux
+      / #
+      """

@@ -89,11 +89,16 @@ def step_impl(ctx, text):
 @when('I press {key}')
 def step_impl(ctx, key):
     mappings = {
-        "enter": "\r",
-        "c-c": "\x03",
-        "c-d": "\x04",
-        "c-p": "\x10",
-        "c-q": "\x11",
+        "enter": "\x0a",
+        "up":    "\x1b[A",
+        "down":  "\x1b[B",
+        "right": "\x1b[C",
+        "left":  "\x1b[D",
+        "esc":   "\x1b",
+        "c-c":   "\x03",
+        "c-d":   "\x04",
+        "c-p":   "\x10",
+        "c-q":   "\x11",
     }
     util.write(ctx.pty, mappings[key.lower()])
 
@@ -101,6 +106,7 @@ def step_impl(ctx, key):
 @then('I will see the output')
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
+    print(actual)
     wanted = ctx.text.splitlines()
     assert(actual[-len(wanted):] == wanted)
 
