@@ -37,7 +37,7 @@ def step_impl(ctx, rows, cols):
     ctx.cols = int(cols)
 
 
-@given('I start {cmd} in a docker container with a PTY')
+@given('I run {cmd} in a docker container with a PTY')
 def step_impl(ctx, cmd):
     ctx.container = ctx.client.create_container(
         image='busybox:latest',
