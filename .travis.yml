@@ -3,7 +3,7 @@ python:
   - "2.7"
 
 before_install:
-  - sudo apt-get install -qq -y slirp ca-certificates
+  - sudo apt-get install -qq -y slirp aufs-tools ca-certificates
   - >
     sudo curl -sLo
     /usr/local/bin/docker
@@ -37,7 +37,7 @@ script:
     sleep 5
 
     # run the tests
-    $(which behave) && killall docker
+    ($(which behave) && killall docker) || (killall docker && exit 1)
     CMD
 
     # make the script executable
