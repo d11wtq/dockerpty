@@ -51,6 +51,10 @@ states.
 container output, though it is obviously not possible to 'control' the
 container if you do not allocate a pseudo-tty.
 
+If you press `C-p C-q`, the container's PTY will be closed, but the container
+will keep running. In other words, you will have detached from the container
+and can re-attach with another `dockerpty.start()` call.
+
 ## How it works
 
 In a terminal, the three file descriptors stdin, stdout and stderr are all
@@ -78,11 +82,6 @@ running inside a real terminal, it is import that the size of the PTY be kept
 the same as that of the presenting TTY. For this reason, docker provides an API
 call to resize the allocated PTY. A SIGWINCH handler is used to detect window
 size changes and resize the pseudo-terminal as needed.
-
-## Planned
-
-  * Implement the "detach" functionality provided by the official docker client
-    - Pressing <kbd>C-p</kbd><kbd>C-q</kbd> detaches from the PTY in docker
 
 ## Copyright & Licensing
 
