@@ -15,6 +15,7 @@ before_install:
   - unzip sekexe.zip
   - mv sekexe-* ./sekexe
   - sudo mkdir /var/lib/docker
+  - sudo mkdir /sys/fs/cgroup
 
 install:
   - pip install -r requirements-dev.txt
@@ -27,17 +28,27 @@ script:
 
     set -xe
 
+    # make sure docker stops at the end
+    trap 'kill $(jobs -p)' EXIT SIGINT SIGTERM
+
+    # mount the cgroups
+    mount -n -t tmpfs -o uid=0,gid=0,mode=0755 cgroup /sys/fs/cgroup
+    for sys in blkio freezer devices memory cpuacct cpu cpuset name=openrc
+    do
+      mount -n -t cgroup -o $sys cgroup /sys/fs/cgroup/$sys
+    done
+
     # make sure we're in this directory
     cd $(pwd)
 
     # start docker backgrounded
-    nohup docker -d &
+    docker -d &
 
     # wait for docker to be ready
     sleep 5
 
     # run the tests
-    ($(which behave) && killall docker) || (killall docker && exit 1)
+    $(which behave)
     CMD
 
     # make the script executable
