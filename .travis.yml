@@ -20,4 +20,17 @@ install:
   - pip install -r requirements-dev.txt
 
 script:
-  - sudo ./sekexe/run 'docker -d & sleep 5; behave'
+  - |
+    sudo ./sekexe/run /bin/bash <<CMD
+    # make sure docker is stopped when we exit
+    trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
+
+    # start docker backgrounded
+    docker -d &
+
+    # wait for docker to be ready
+    sleep 5
+
+    # run the tests
+    `which behave`
+    CMD
