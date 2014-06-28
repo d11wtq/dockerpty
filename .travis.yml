@@ -35,7 +35,7 @@ script:
     mount -n -t tmpfs -o uid=0,gid=0,mode=0755 cgroup /sys/fs/cgroup
     for sys in blkio freezer devices memory cpuacct cpu cpuset name=openrc
     do
-      mount -n -t cgroup -o $sys cgroup /sys/fs/cgroup/$sys
+      mount -n -t cgroup -o \$sys cgroup /sys/fs/cgroup/\$sys
     done
 
     # make sure we're in this directory
