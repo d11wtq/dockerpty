@@ -97,6 +97,25 @@ Feature: Using a pseudo-terminal
       """
 
 
+  Scenario: Resizing the PTY frenetically
+    Given I am using a TTY with dimensions 20 x 70
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I resize the terminal to 30 x 100
+    And I resize the terminal to 30 x 101
+    And I resize the terminal to 30 x 98
+    And I resize the terminal to 28 x 98
+    And I resize the terminal to 28 x 105
+    And I type "stty size"
+    And I press ENTER
+    Then I will see the output
+      """
+      / # stty size
+      28 105
+      / #
+      """
+
+
   Scenario: Terminating the PTY
     Given I am using a TTY
     And I start /bin/sh in a docker container with a PTY

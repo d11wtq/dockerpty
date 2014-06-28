@@ -106,7 +106,6 @@ def step_impl(ctx, key):
 @then('I will see the output')
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
-    print(actual)
     wanted = ctx.text.splitlines()
     assert(actual[-len(wanted):] == wanted)
 
