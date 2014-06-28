@@ -13,8 +13,7 @@ before_install:
     curl -sLo sekexe.zip
     https://github.com/jpetazzo/sekexe/archive/c5119f039140194f70a7ffa83e039b88960818c7.zip
   - unzip sekexe.zip
-  - mv sekexe-*/* ./
-  - rm -rf sekexe*
+  - mv sekexe-* ./sekexe
   - sudo groupadd docker
   - sudo usermod -aG docker `whoami`
 
