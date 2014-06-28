@@ -15,12 +15,14 @@ before_install:
   - unzip sekexe.zip
   - mv sekexe-*/* ./
   - rm -rf sekexe*
+  - sudo groupadd docker
+  - sudo usermod -aG docker `whoami`
 
 install:
   - pip install -r requirements-dev.txt
 
 before_script:
-  - sudo ./sekexe/run 'docker -d' >/docker.log 2>&1 &
+  - sudo ./sekexe/run 'docker -d' >./docker.log 2>&1 &
 
 script:
-  - sudo behave
+  - behave
