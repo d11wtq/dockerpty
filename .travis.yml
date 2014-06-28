@@ -16,9 +16,6 @@ before_install:
   - mv sekexe-* ./sekexe
   - sudo mkdir /var/lib/docker
 
-install:
-  - pip install -r requirements-dev.txt
-
 script:
   - |
     # prepare a little bash script for sekexe
@@ -30,6 +27,12 @@ script:
     # make sure docker is stopped when we exit
     trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
 
+    # make sure we're in this directory
+    cd $(pwd)
+
+    # install dependencies
+    pip install -r requirements-dev.txt
+
     # start docker backgrounded
     docker -d &
 
@@ -37,11 +40,11 @@ script:
     sleep 5
 
     # run the tests
-    $(which behave)
+    behave
     CMD
 
     # make the script executable
     chmod +x ./run.sh
 
     # run the script with sekexe
-    sudo ./sekexe/run $(realpath ./run.sh)
+    sudo ./sekexe/run $(pwd)/run.sh
