@@ -27,20 +27,17 @@ script:
 
     set -xe
 
-    # make sure docker is stopped when we exit
-    trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
-
     # make sure we're in this directory
     cd $(pwd)
 
     # start docker backgrounded
-    docker -s devicemapper -d &
+    nohup docker -d &
 
     # wait for docker to be ready
     sleep 5
 
     # run the tests
-    $(which behave)
+    $(which behave) && killall docker
     CMD
 
     # make the script executable
