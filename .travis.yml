@@ -21,7 +21,12 @@ install:
 
 script:
   - |
-    sudo ./sekexe/run /bin/bash <<CMD
+    # prepare a little bash script for sekexe
+    cat > ./run.sh <<CMD
+    #!/bin/bash
+
+    set -xe
+
     # make sure docker is stopped when we exit
     trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
 
@@ -34,3 +39,9 @@ script:
     # run the tests
     `which behave`
     CMD
+
+    # make the script executable
+    chmod +x ./run.sh
+
+    # run the script with sekexe
+    sudo ./sekexe/run ./run.sh
