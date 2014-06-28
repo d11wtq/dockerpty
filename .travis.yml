@@ -37,11 +37,11 @@ script:
     sleep 5
 
     # run the tests
-    `which behave`
+    $(which behave)
     CMD
 
     # make the script executable
     chmod +x ./run.sh
 
     # run the script with sekexe
-    sudo ./sekexe/run ./run.sh
+    sudo ./sekexe/run $(realpath ./run.sh)
