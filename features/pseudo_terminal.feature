@@ -103,4 +103,17 @@ Feature: Using a pseudo-terminal
     When I start dockerpty
     And I type "exit"
     And I press ENTER
-    Then The PTY will be closed
+    Then The PTY will be closed cleanly
+    And The container will not be running
+
+
+  Scenario: Detaching from the PTY
+    Given I am using a TTY
+    And I start /bin/sh in a docker container with a PTY
+    When I start dockerpty
+    And I type "ls"
+    And I press ENTER
+    And I press C-p
+    And I press C-q
+    Then The PTY will be closed cleanly
+    And The container will still be running

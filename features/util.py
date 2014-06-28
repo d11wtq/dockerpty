@@ -41,7 +41,7 @@ def wait(fd):
     Wait until data is ready for reading on `fd`.
     """
 
-    return select.select([fd], [], [], 1)[0]
+    return select.select([fd], [], [], 2)[0]
 
 
 def printable(text):
@@ -133,3 +133,13 @@ def exit_code(pid, timeout=5):
         else:
             if (time.time() - start) > timeout:
                 return -1
+
+
+def container_running(client, container, duration=2):
+    """
+    Predicate to check if a container continues to run after `duration` secs.
+    """
+
+    time.sleep(duration)
+    config = client.inspect_container(container)
+    return config['State']['Running']

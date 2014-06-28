@@ -58,6 +58,7 @@ def step_impl(ctx):
         sys.stdout = open(tty, 'w')
         sys.stderr = open(tty, 'w')
         dockerpty.start(ctx.client, ctx.container)
+        sys.exit(0)
     else:
         tty = os.ttyname(fd)
         ctx.pty = fd
@@ -89,7 +90,10 @@ def step_impl(ctx, text):
 def step_impl(ctx, key):
     mappings = {
         "enter": "\r",
+        "c-c": "\x03",
         "c-d": "\x04",
+        "c-p": "\x10",
+        "c-q": "\x11",
     }
     util.write(ctx.pty, mappings[key.lower()])
 
@@ -101,6 +105,16 @@ def step_impl(ctx):
     assert(actual[-len(wanted):] == wanted)
 
 
-@then('The PTY will be closed')
+@then('The PTY will be closed cleanly')
 def step_impl(ctx):
-    assert(util.exit_code(ctx.pid, timeout=2) == 0)
+    assert(util.exit_code(ctx.pid, timeout=5) == 0)
+
+
+@then('The container will not be running')
+def step_impl(ctx):
+    assert(not util.container_running(ctx.client, ctx.container, duration=2))
+
+
+@then('The container will still be running')
+def step_impl(ctx):
+    assert(util.container_running(ctx.client, ctx.container, duration=2))
