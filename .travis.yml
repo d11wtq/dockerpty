@@ -1,0 +1,26 @@
+language: python
+python:
+  - "2.7"
+
+before_install:
+  - sudo apt-get install -qq -y slirp ca-certificates
+  - >
+    sudo curl -sLo
+    /usr/local/bin/docker
+    https://get.docker.io/builds/Linux/x86_64/docker-1.0.0
+  - sudo chmod +x /usr/local/bin/docker
+  - >
+    curl -sLo sekexe.zip
+    https://github.com/jpetazzo/sekexe/archive/c5119f039140194f70a7ffa83e039b88960818c7.zip
+  - unzip sekexe.zip
+  - mv sekexe-*/* ./
+  - rm -rf sekexe*
+
+install:
+  - pip -r requirements-dev.txt
+
+before_script:
+  - sudo ./sekexe/run 'docker -d' >/docker.log 2>&1 &
+
+script:
+  - sudo behave
