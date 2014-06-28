@@ -34,7 +34,7 @@ script:
     cd $(pwd)
 
     # start docker backgrounded
-    docker -d &
+    docker -s devicemapper -d &
 
     # wait for docker to be ready
     sleep 5
