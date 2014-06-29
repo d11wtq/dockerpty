@@ -108,7 +108,7 @@ install: |
   pip install -r requirements-dev.txt
 
   # run the build
-  behave -q -f plain
+  behave -q -c
   BASH
 
   chmod +x run.sh
