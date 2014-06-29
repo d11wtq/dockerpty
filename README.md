@@ -3,6 +3,9 @@
 Provides the functionality needed to operate the pseudo-tty (PTY) allocated to
 a docker container, using the Python client.
 
+[![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)]
+(https://travis-ci.org/d11wtq/dockerpty)
+
 ## Installation
 
 Via pip:
@@ -54,6 +57,27 @@ container if you do not allocate a pseudo-tty.
 If you press `C-p C-q`, the container's PTY will be closed, but the container
 will keep running. In other words, you will have detached from the container
 and can re-attach with another `dockerpty.start()` call.
+
+## Tests
+
+If you want to hack on dockerpty and send a PR, you'll need to run the tests.
+In the features/ directory, are features/user stories for how dockerpty is
+supposed to work. To run them:
+
+```
+-bash$ pip install -r requirements-dev.txt
+-bash$ behave
+```
+
+You'll need to have docker installed and running locally. The tests use busybox
+container as a test fixture, so are not too heavy.
+
+Step definitions are defined in features/steps/.
+
+Travis CI runs this build inside a UML kernel that is new enough to run docker.
+Your PR will need to pass the build before I can merge it.
+
+  - Travis CI build: https://travis-ci.org/d11wtq/dockerpty
 
 ## How it works
 
