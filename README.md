@@ -39,7 +39,6 @@ container = client.create_container(
     tty=True,
     command='/bin/sh',
 )
-client.start(container)
 
 dockerpty.start(client, container)
 ```

@@ -129,11 +129,11 @@ class PseudoTerminal(object):
         is closed.
         """
 
+        pty_stdin, pty_stdout, pty_stderr = self.sockets()
+
         info = self.container_info()
         if not info['State']['Running']:
-            raise Exception('Cannot attach to a stopped container')
-
-        pty_stdin, pty_stdout, pty_stderr = self.sockets()
+            self.client.start(self.container)
 
         pumps = [
             io.Pump(sys.stdin, pty_stdin),

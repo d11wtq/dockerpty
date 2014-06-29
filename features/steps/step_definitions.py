@@ -46,7 +46,6 @@ def step_impl(ctx, cmd):
         stdin_open=True,
         tty=True,
     )
-    ctx.client.start(ctx.container)
 
 
 @given('I run "{cmd}" in a docker container')
@@ -55,7 +54,6 @@ def step_impl(ctx, cmd):
         image='busybox:latest',
         command=cmd,
     )
-    ctx.client.start(ctx.container)
 
 
 @when('I start dockerpty')
