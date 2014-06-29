@@ -1,4 +1,4 @@
-# dockerpty: pseudo_terminal_steps.py
+# dockerpty: step_definitions.py
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #
@@ -15,6 +15,7 @@
 # limitations under the License.
 
 from behave import *
+from expects import expect
 
 import dockerpty
 import util
@@ -37,13 +38,22 @@ def step_impl(ctx, rows, cols):
     ctx.cols = int(cols)
 
 
-@given('I run {cmd} in a docker container with a PTY')
+@given('I run "{cmd}" in a docker container with a PTY')
 def step_impl(ctx, cmd):
     ctx.container = ctx.client.create_container(
         image='busybox:latest',
         command=cmd,
         stdin_open=True,
         tty=True,
+    )
+    ctx.client.start(ctx.container)
+
+
+@given('I run "{cmd}" in a docker container')
+def step_impl(ctx, cmd):
+    ctx.container = ctx.client.create_container(
+        image='busybox:latest',
+        command=cmd,
     )
     ctx.client.start(ctx.container)
 
@@ -112,7 +122,7 @@ def step_impl(ctx, key):
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
     wanted = ctx.text.splitlines()
-    assert(actual[-len(wanted):] == wanted)
+    expect("\n".join(actual[-len(wanted):])).to.equal("\n".join(wanted))
 
 
 @then('The PTY will be closed cleanly')

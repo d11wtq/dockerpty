@@ -172,7 +172,7 @@ class PseudoTerminal(object):
         def attach_socket(key):
             return self.client.attach_socket(
                 self.container,
-                {key: 1, 'stream': 1},
+                {key: 1, 'stream': 1, 'logs': 1},
             )
 
         return map(attach_socket, ('stdin', 'stdout', 'stderr'))

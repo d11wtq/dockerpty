@@ -1,4 +1,4 @@
-# dockerpty.
+# dockerpty: interactive_terminal.feature.
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #
@@ -15,14 +15,14 @@
 # limitations under the License.
 
 
-Feature: Using a pseudo-terminal
+Feature: Attaching to an interactive terminal in a docker container
   As a user I want to be able to attach to a shell in a running docker
-  container and control it as if it is running on my own computer.
+  container and control inside my own terminal.
 
 
   Scenario: Starting the PTY
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     Then I will see the output
       """
@@ -32,7 +32,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Controlling input
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I type "whoami"
     Then I will see the output
@@ -43,7 +43,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Controlling standard output
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I type "uname"
     And I press ENTER
@@ -57,7 +57,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Controlling standard error
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I type "ls blah"
     And I press ENTER
@@ -71,7 +71,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Initializing the PTY with the correct size
     Given I am using a TTY with dimensions 20 x 70
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I type "stty size"
     And I press ENTER
@@ -85,7 +85,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Resizing the PTY
     Given I am using a TTY with dimensions 20 x 70
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I resize the terminal to 30 x 100
     And I type "stty size"
@@ -100,7 +100,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Resizing the PTY frenetically
     Given I am using a TTY with dimensions 20 x 70
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I resize the terminal to 30 x 100
     And I resize the terminal to 30 x 101
@@ -119,7 +119,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Terminating the PTY
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I type "exit"
     And I press ENTER
@@ -129,7 +129,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Detaching from the PTY
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I press ENTER
     And I press C-p
@@ -140,7 +140,7 @@ Feature: Using a pseudo-terminal
 
   Scenario: Reattaching to the PTY
     Given I am using a TTY
-    And I run /bin/sh in a docker container with a PTY
+    And I run "/bin/sh" in a docker container with a PTY
     When I start dockerpty
     And I type "uname"
     And I press ENTER
@@ -161,6 +161,6 @@ Feature: Using a pseudo-terminal
 
   Scenario: Cleanly exiting on race conditions
     Given I am using a TTY
-    And I run /bin/true in a docker container with a PTY
+    And I run "/bin/true" in a docker container with a PTY
     When I start dockerpty
     Then The PTY will be closed cleanly
