@@ -17,7 +17,7 @@
 language: python
 python: [ "2.7" ]
 
-install: |
+before_install: |
   #!/bin/bash
 
   # needed for the UML container
@@ -104,14 +104,13 @@ install: |
   # activate virtualenv
   source $HOME/virtualenv/python2.7/bin/activate
 
-  # install deps
-  pip install -r requirements-dev.txt
-
   # run the build
   behave -q -c
   BASH
 
   chmod +x run.sh
+
+install: pip install -r requirements-dev.txt
 
 script: |
   #!/bin/bash
