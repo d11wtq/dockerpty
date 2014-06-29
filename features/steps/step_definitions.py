@@ -113,7 +113,7 @@ def step_impl(ctx, key):
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
     wanted = ctx.text.splitlines()
-    expect("\n".join(actual[-len(wanted):])).to.equal("\n".join(wanted))
+    expect(actual[-len(wanted):]).to.equal(wanted)
 
 
 @then('The PTY will be closed cleanly')
