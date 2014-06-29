@@ -32,4 +32,7 @@ def after_scenario(ctx, scenario):
     """
 
     if hasattr(ctx, 'container') and hasattr(ctx, 'client'):
-        ctx.client.remove_container(ctx.container, force=True)
+        try:
+            ctx.client.remove_container(ctx.container, force=True)
+        except:
+            pass
