@@ -105,7 +105,7 @@ before_install: |
   source $HOME/virtualenv/python2.7/bin/activate
 
   # run the build
-  behave -q -c
+  behave -c
   BASH
 
   chmod +x run.sh
