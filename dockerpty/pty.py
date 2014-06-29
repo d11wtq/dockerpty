@@ -97,7 +97,6 @@ class PseudoTerminal(object):
             tty=True,
             command='/bin/sh',
         )
-        client.start(container)
 
         # hijacks the current tty until the pty is closed
         PseudoTerminal(client, container).start()
@@ -119,11 +118,9 @@ class PseudoTerminal(object):
         self.raw = None
 
 
-    def start(self):
+    def start(self, **kwargs):
         """
         Present the PTY of the container inside the current process.
-
-        The container must be started before this method is invoked.
 
         This will take over the current process' TTY until the container's PTY
         is closed.
@@ -133,7 +130,7 @@ class PseudoTerminal(object):
 
         info = self.container_info()
         if not info['State']['Running']:
-            self.client.start(self.container)
+            self.client.start(self.container, **kwargs)
 
         pumps = [
             io.Pump(sys.stdin, pty_stdin),

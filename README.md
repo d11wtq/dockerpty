@@ -43,6 +43,9 @@ container = client.create_container(
 dockerpty.start(client, container)
 ```
 
+Keyword arguments passed to `start()` will be forwarded onto the client to
+start the container.
+
 When the dockerpty is started, control is yielded to the container's PTY until
 the container exits, or the container's PTY is closed.
 
