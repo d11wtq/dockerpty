@@ -168,3 +168,128 @@ class Pump(object):
             except IOError as e:
                 if e.errno != errno.EWOULDBLOCK:
                     raise e
+
+
+# FIXME: Add the error-checking used in Pump.
+class Stream(object):
+    """
+    Generic Stream class.
+
+    This is a file-like abstraction on top of os.read() and os.write(), which
+    add consistency to the reading of sockets and files alike.
+    """
+
+    def __init__(self, fd):
+        """
+        Initialize the Stream for the file descriptor `fd`.
+
+        The `fd` object must have a `fileno()` method.
+        """
+        self.fd = fd.fileno()
+
+
+    def fileno(self):
+        """
+        Returns the fileno() of the file descriptor.
+        """
+
+        return self.fd
+
+
+    def read(self, n=4096):
+        """
+        Returns `n` bytes of data from the Stream, or None at end of stream.
+        """
+
+        return os.read(self.fd, n)
+
+
+    def write(self, data):
+        """
+        Writes `data` to the Stream.
+        """
+
+        return os.write(self.fd, data)
+
+
+class Demuxer(object):
+    """
+    Wraps a multiplexed Stream to read in data demultiplexed.
+
+    Docker multiplexes streams together when there is no PTY attached, by
+    sending an 8-byte header, followed by a chunk of data.
+
+    The first 4 bytes of the header denote the stream from which the data came
+    (i.e. 0x01 = stdout, 0x02 = stderr). Only the first byte of these initial 4
+    bytes is used.
+
+    The next 4 bytes indicate the length of the following chunk of data as an
+    integer in big endian format. This much data must be consumed before the
+    next 8-byte header is read.
+    """
+
+    def __init__(self, stream):
+        """
+        Initialize a new Demuxer reading from `stream`.
+        """
+
+        self.stream = stream
+        self.remain = 0
+
+
+    def fileno(self):
+        """
+        Returns the fileno() of the underlying Stream.
+
+        This is useful for select() to work.
+        """
+
+        return self.stream.fileno()
+
+
+    def read(self, n=4096):
+        """
+        Read `n` bytes of data from the Stream, after demuxing.
+
+        Less than `n` bytes of data may be returned at the end of the Stream,
+        but the number of bytes returned will never exceed `n`.
+
+        Because demuxing involves scanning 8-byte headers, the actual amount of
+        data read from the underlying stream will be greater than `n`.
+        """
+
+        return ''.join([data for data in self._demux(n)])
+
+
+    def write(self, data):
+        """
+        Delegates the the underlying Stream.
+        """
+
+        return self.stream.write(data)
+
+
+    def _demux(self, n):
+        while n > 0:
+            size = self._read_size(n)
+
+            if size <= 0:
+                return
+            else:
+                yield self.stream.read(size)
+                n -= size
+
+    def _read_size(self, n=0):
+        size = 0
+
+        if self.remain > 0:
+            size = min(n, self.remain)
+            self.remain = self.remain - size
+        else:
+            data = self.stream.read(8)
+            if len(data) == 8:
+                __, actual = struct.unpack('>BxxxL', data)
+                size = min(n, actual)
+                self.remain = actual - size
+
+        return size
