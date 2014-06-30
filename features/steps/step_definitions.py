@@ -24,6 +24,7 @@ import sys
 import os
 import signal
 import errno
+import time
 
 
 @given('I am using a TTY')
@@ -128,6 +129,12 @@ def step_impl(ctx, key):
         "c-q":   "\x11",
     }
     util.write(ctx.pty, mappings[key.lower()])
+
+
+@when('I wait {num} second')
+@when('I wait {num} seconds')
+def step_impl(ctx, num):
+    time.sleep(int(num))
 
 
 @then('I will see the output')
