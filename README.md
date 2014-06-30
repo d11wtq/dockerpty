@@ -109,6 +109,11 @@ the same as that of the presenting TTY. For this reason, docker provides an API
 call to resize the allocated PTY. A SIGWINCH handler is used to detect window
 size changes and resize the pseudo-terminal as needed.
 
+## Contributors
+
+  - Primary author: [Chris Corbyn](https://github.com/d11wtq)
+  - Contributor: [Stephen Moore](https://github.com/delfick)
+
 ## Copyright & Licensing
 
 Copyright &copy; 2014 Chris Corbyn. See the LICENSE.txt file for details.
