@@ -56,13 +56,18 @@ def step_impl(ctx, cmd):
     )
 
 
-@given('I run "{cmd}" in a docker container with stdin_open=True')
+@given('I run "{cmd}" in a docker container with stdin open')
 def step_impl(ctx, cmd):
     ctx.container = ctx.client.create_container(
         image='busybox:latest',
         command=cmd,
         stdin_open=True,
     )
+
+
+@when('I start the container')
+def step_impl(ctx):
+    ctx.client.start(ctx.container)
 
 
 @when('I start dockerpty')

@@ -164,3 +164,15 @@ Feature: Attaching to an interactive terminal in a docker container
     And I run "/bin/true" in a docker container with a PTY
     When I start dockerpty
     Then The PTY will be closed cleanly
+
+
+  Scenario: Running when the container is started
+    Given I am using a TTY
+    And I run "/bin/sh" in a docker container with a PTY
+    When I start the container
+    And I start dockerpty
+    And I press ENTER
+    Then I will see the output
+      """
+      / #
+      """

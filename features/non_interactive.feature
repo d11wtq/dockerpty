@@ -16,7 +16,7 @@
 
 
 Feature: Attaching to a docker container non-interactively
-  As a user I want to be able to attach to a shell in a running docker
+  As a user I want to be able to attach to a process in a running docker
   container and view its output in my own terminal.
 
 
@@ -28,6 +28,17 @@ Feature: Attaching to a docker container non-interactively
       """
       Welcome to Buildroot
       """
+
+
+  Scenario: Capturing errors
+    Given I am using a TTY
+    And I run "sh -c 'tail -f /etc/issue 1>&2'" in a docker container
+    When I start dockerpty
+    Then I will see the output
+      """
+      Welcome to Buildroot
+      """
+
 
   Scenario: Ignoring input
     Given I am using a TTY
@@ -42,15 +53,13 @@ Feature: Attaching to a docker container non-interactively
       """
     And The container will still be running
 
-  Scenario: Sending input
+
+  Scenario: Running when the container is started
     Given I am using a TTY
-    And I run "/bin/cat" in a docker container with stdin_open=True
-    When I start dockerpty
-    And I type "Hello World!"
-    And I press ENTER
+    And I run "/bin/watch cat /etc/issue" in a docker container
+    When I start the container
+    And I start dockerpty
     Then I will see the output
       """
-      Hello World!
-      Hello World!
+      Welcome to Buildroot
       """
-    And The container will still be running
