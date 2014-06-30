@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import fcntl
 import errno
+import struct
 import select as builtin_select
 
 
@@ -79,7 +79,7 @@ class Pump(object):
     Pumps are selectable based on the 'read' end of the pipe.
     """
 
-    def __init__(self, io_from, io_to):
+    def __init__(self, io_from, io_to, multiplexed=False):
         """
         Initialize a Pump with a stream to read from and another to write to.
 
@@ -88,6 +88,7 @@ class Pump(object):
 
         self.fd_from = io_from.fileno()
         self.fd_to = io_to.fileno()
+        self.multiplexed = multiplexed
 
 
     def fileno(self):
@@ -111,15 +112,40 @@ class Pump(object):
         """
 
         try:
-            return self._write(self._read(n))
+            for chunk in self._read(n):
+                return self._write(chunk)
         except OSError as e:
             if e.errno != errno.EPIPE:
                 raise e
 
 
     def _read(self, n=4096):
+        """
+        Yield n bytes from the stream in 0 or more chunks.
+
+        If we are multiplexed, then we have an 8 byte header that says what
+        stream we should go to and how many bytes can be read.
+        """
         try:
-            return os.read(self.fd_from, n)
+            if not self.multiplexed:
+                yield os.read(self.fd_from, n)
+            else:
+                data = os.read(self.fd_from, 8)
+                if len(data) < 8:
+                    return
+
+                _, length = struct.unpack_from('>BxxxL', data)
+                if not length:
+                    return
+
+                done = 0
+                while done < length:
+                    nxt = os.read(self.fd_from, length)
+                    if not nxt:
+                        break
+                    yield nxt
+                    done += len(nxt)
+
         except OSError as e:
             if e.errno != errno.EINTR:
                 raise e

@@ -132,19 +132,23 @@ class PseudoTerminal(object):
         if not info['State']['Running']:
             self.client.start(self.container, **kwargs)
 
-        pumps = [
-            io.Pump(sys.stdin, pty_stdin),
-            io.Pump(pty_stdout, sys.stdout),
-            io.Pump(pty_stderr, sys.stderr),
+        options = {"multiplexed": not info["Config"]["AttachStdin"]}
+
+        spec = [
+            ("AttachStdin", io.Pump(sys.stdin, pty_stdin, **options)),
+            ("AttachStdout", io.Pump(pty_stdout, sys.stdout, **options)),
+            ("AttachStderr", io.Pump(pty_stderr, sys.stderr, **options)),
         ]
+        pumps = [pump for check, pump in spec if info["Config"][check]]
 
         try:
             flags = [io.set_blocking(p, False) for p in pumps]
             with WINCHHandler(self):
                 self._hijack_tty(pumps)
         finally:
-            for (pump, flag) in zip(pumps, flags):
-                io.set_blocking(pump, flag)
+            if flags:
+                for (pump, flag) in zip(pumps, flags):
+                    io.set_blocking(pump, flag)
 
 
     def israw(self):
