@@ -28,3 +28,29 @@ Feature: Attaching to a docker container non-interactively
       """
       Welcome to Buildroot
       """
+
+  Scenario: Ignoring input
+    Given I am using a TTY
+    And I run "/usr/bin/tail -f /etc/issue" in a docker container
+    When I start dockerpty
+    And I type "exit"
+    And I press ENTER
+    Then I will see the output
+      """
+      Welcome to Buildroot
+      exit
+      """
+    And The container will still be running
+
+  Scenario: Sending input
+    Given I am using a TTY
+    And I run "/bin/cat" in a docker container with stdin_open=True
+    When I start dockerpty
+    And I type "Hello World!"
+    And I press ENTER
+    Then I will see the output
+      """
+      Hello World!
+      Hello World!
+      """
+    And The container will still be running
