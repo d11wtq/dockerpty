@@ -132,10 +132,10 @@ class PseudoTerminal(object):
         if not info['State']['Running']:
             self.client.start(self.container, **kwargs)
 
-        options = {"multiplexed": not info["Config"]["AttachStdin"]}
+        options = {"multiplexed": not info["Config"]["Tty"]}
 
         spec = [
-            ("AttachStdin", io.Pump(sys.stdin, pty_stdin, **options)),
+            ("AttachStdin", io.Pump(sys.stdin, pty_stdin)),
             ("AttachStdout", io.Pump(pty_stdout, sys.stdout, **options)),
             ("AttachStderr", io.Pump(pty_stderr, sys.stderr, **options)),
         ]

@@ -62,12 +62,15 @@ Feature: Attaching to a docker container with stdin open
     When I start dockerpty
     And I type "echo 'Hello World!'"
     And I press ENTER
-    And I type "echo 'Hello Universe!' 1>&2"
-    And I press ENTER
     Then I will see the output
       """
       echo 'Hello World!'
       Hello World!
+      """
+    When I type "echo 'Hello Universe!' 1>&2"
+    And I press ENTER
+    Then I will see the output
+      """
       echo 'Hello Universe!' 1>&2
       Hello Universe!
       """
