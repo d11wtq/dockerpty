@@ -22,8 +22,12 @@ import sys
 
 
 class TestDemuxer(object):
-    def create_demuxer(self, *chunks):
-        return io.Demuxer(StringIO(u''.join(chunks)))
+    def create_fixture(self):
+        chunks = [
+            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
+            "\x01\x00\x00\x00\x00\x00\x00\x01d",
+        ]
+        return StringIO(u''.join(chunks))
 
 
     def test_fileno_delegates_to_stream(self):
@@ -32,52 +36,34 @@ class TestDemuxer(object):
 
 
     def test_reading_single_chunk(self):
-        demuxer = self.create_demuxer(
-            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
-            "\x01\x00\x00\x00\x00\x00\x00\x01d",
-        )
+        demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(3)).to.equal('foo')
 
 
     def test_reading_multiple_chunks(self):
-        demuxer = self.create_demuxer(
-            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
-            "\x01\x00\x00\x00\x00\x00\x00\x01d",
-        )
+        demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(4)).to.equal('food')
 
 
     def test_reading_separate_chunks(self):
-        demuxer = self.create_demuxer(
-            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
-            "\x01\x00\x00\x00\x00\x00\x00\x01d",
-        )
+        demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(3)).to.equal('foo')
         expect(demuxer.read(1)).to.equal('d')
 
 
     def test_reading_partial_chunk(self):
-        demuxer = self.create_demuxer(
-            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
-            "\x01\x00\x00\x00\x00\x00\x00\x01d",
-        )
+        demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(2)).to.equal('fo')
 
 
     def test_reading_overlapping_chunks(self):
-        demuxer = self.create_demuxer(
-            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
-            "\x01\x00\x00\x00\x00\x00\x00\x01d",
-        )
+        demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(2)).to.equal('fo')
         expect(demuxer.read(2)).to.equal('od')
 
 
     def test_read_more_than_exists(self):
-        demuxer = self.create_demuxer(
-            "\x01\x00\x00\x00\x00\x00\x00\x03foo",
-            "\x01\x00\x00\x00\x00\x00\x00\x01d",
-        )
+        demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(100)).to.equal('food')
 
 
