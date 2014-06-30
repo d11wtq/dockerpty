@@ -17,7 +17,7 @@
 import docker
 
 
-def before_feature(ctx, feature):
+def before_all(ctx):
     """
     Pulls down busybox:latest before anything is tested.
     """
