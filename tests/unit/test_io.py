@@ -1,4 +1,4 @@
-# dockerpty: io_tests.py.
+# dockerpty: test_io.py.
 #
 # Copyright 2014 Chris Corbyn <chris@w3style.co.uk>
 #
@@ -58,6 +58,7 @@ def test_select_returns_streams_for_reading():
 
 
 class TestStream(object):
+
     def test_fileno_delegates_to_file_descriptor(self):
         stream = io.Stream(sys.stdout)
         expect(stream.fileno()).to.equal(sys.stdout.fileno())
@@ -111,6 +112,7 @@ class TestStream(object):
 
 
 class TestDemuxer(object):
+
     def create_fixture(self):
         chunks = [
             "\x01\x00\x00\x00\x00\x00\x00\x03foo",
@@ -155,6 +157,7 @@ class TestDemuxer(object):
 
 
 class TestPump(object):
+
     def test_fileno_delegates_to_from_stream(self):
         pump = io.Pump(sys.stdout, sys.stderr)
         expect(pump.fileno()).to.equal(sys.stdout.fileno())

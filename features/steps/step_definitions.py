@@ -16,9 +16,9 @@
 
 from behave import *
 from expects import expect
+import tests.util as util
 
 import dockerpty
-import util
 import pty
 import sys
 import os
