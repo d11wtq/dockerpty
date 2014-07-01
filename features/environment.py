@@ -23,7 +23,7 @@ def before_all(ctx):
     """
 
     ctx.client = docker.Client()
-    ctx.client.pull('busybox:latest')
+    #ctx.client.pull('busybox:latest')
 
 
 def after_scenario(ctx, scenario):

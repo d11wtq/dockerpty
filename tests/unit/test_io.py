@@ -19,6 +19,95 @@ from io import StringIO
 import dockerpty.io as io
 
 import sys
+import os
+import fcntl
+import socket
+import tempfile
+
+
+def test_set_blocking_changes_fd_flags():
+    with tempfile.TemporaryFile() as f:
+        io.set_blocking(f, False)
+        flags = fcntl.fcntl(f, fcntl.F_GETFL)
+        expect(flags & os.O_NONBLOCK).to.equal(os.O_NONBLOCK)
+
+        io.set_blocking(f, True)
+        flags = fcntl.fcntl(f, fcntl.F_GETFL)
+        expect(flags & os.O_NONBLOCK).to.equal(0)
+
+
+def test_set_blocking_returns_previous_state():
+    with tempfile.TemporaryFile() as f:
+        io.set_blocking(f, True)
+        expect(io.set_blocking(f, False)).to.be.true
+
+        io.set_blocking(f, False)
+        expect(io.set_blocking(f, True)).to.be.false
+
+
+def test_select_returns_streams_for_reading():
+        a, b = socket.socketpair()
+        a.send('test')
+        expect(io.select([a, b], timeout=0)).to.equal([b])
+        b.send('test')
+        expect(io.select([a, b], timeout=0)).to.equal([a, b])
+        b.recv(4)
+        expect(io.select([a, b], timeout=0)).to.equal([a])
+        a.recv(4)
+        expect(io.select([a, b], timeout=0)).to.equal([])
+
+
+class TestStream(object):
+    def test_fileno_delegates_to_file_descriptor(self):
+        stream = io.Stream(sys.stdout)
+        expect(stream.fileno()).to.equal(sys.stdout.fileno())
+
+
+    def test_read_from_socket(self):
+        a, b = socket.socketpair()
+        a.send('test')
+        stream = io.Stream(b)
+        expect(stream.read(32)).to.equal('test')
+
+
+    def test_write_to_socket(self):
+        a, b = socket.socketpair()
+        stream = io.Stream(a)
+        stream.write('test')
+        expect(b.recv(32)).to.equal('test')
+
+
+    def test_read_from_file(self):
+        with tempfile.TemporaryFile() as f:
+            stream = io.Stream(f)
+            f.write('test')
+            f.seek(0)
+            expect(stream.read(32)).to.equal('test')
+
+
+    def test_read_returns_empty_string_at_eof(self):
+        with tempfile.TemporaryFile() as f:
+            stream = io.Stream(f)
+            expect(stream.read(32)).to.equal('')
+
+
+    def test_write_to_file(self):
+        with tempfile.TemporaryFile() as f:
+            stream = io.Stream(f)
+            stream.write('test')
+            f.seek(0)
+            expect(f.read(32)).to.equal('test')
+
+
+    def test_write_returns_length_written(self):
+        with tempfile.TemporaryFile() as f:
+            stream = io.Stream(f)
+            expect(stream.write('test')).to.equal(4)
+
+
+    def test_write_returns_none_when_no_data(self):
+        stream = io.Stream(StringIO())
+        expect(stream.write('')).to.be.none
 
 
 class TestDemuxer(object):
@@ -37,18 +126,13 @@ class TestDemuxer(object):
 
     def test_reading_single_chunk(self):
         demuxer = io.Demuxer(self.create_fixture())
-        expect(demuxer.read(3)).to.equal('foo')
+        expect(demuxer.read(32)).to.equal('foo')
 
 
     def test_reading_multiple_chunks(self):
         demuxer = io.Demuxer(self.create_fixture())
-        expect(demuxer.read(4)).to.equal('food')
-
-
-    def test_reading_separate_chunks(self):
-        demuxer = io.Demuxer(self.create_fixture())
-        expect(demuxer.read(3)).to.equal('foo')
-        expect(demuxer.read(1)).to.equal('d')
+        expect(demuxer.read(32)).to.equal('foo')
+        expect(demuxer.read(32)).to.equal('d')
 
 
     def test_reading_partial_chunk(self):
@@ -59,12 +143,8 @@ class TestDemuxer(object):
     def test_reading_overlapping_chunks(self):
         demuxer = io.Demuxer(self.create_fixture())
         expect(demuxer.read(2)).to.equal('fo')
-        expect(demuxer.read(2)).to.equal('od')
-
-
-    def test_read_more_than_exists(self):
-        demuxer = io.Demuxer(self.create_fixture())
-        expect(demuxer.read(100)).to.equal('food')
+        expect(demuxer.read(2)).to.equal('o')
+        expect(demuxer.read(2)).to.equal('d')
 
 
     def test_write_delegates_to_stream(self):
@@ -72,3 +152,25 @@ class TestDemuxer(object):
         demuxer = io.Demuxer(s)
         demuxer.write(u'test')
         expect(s.getvalue()).to.equal('test')
+
+
+class TestPump(object):
+    def test_fileno_delegates_to_from_stream(self):
+        pump = io.Pump(sys.stdout, sys.stderr)
+        expect(pump.fileno()).to.equal(sys.stdout.fileno())
+
+
+    def test_flush_pipes_data_between_streams(self):
+        a = StringIO(u'food')
+        b = StringIO()
+        pump = io.Pump(a, b)
+        pump.flush(3)
+        expect(a.read(1)).to.equal('d')
+        expect(b.getvalue()).to.equal('foo')
+
+
+    def test_flush_returns_length_written(self):
+        a = StringIO(u'fo')
+        b = StringIO()
+        pump = io.Pump(a, b)
+        expect(pump.flush(3)).to.equal(2)

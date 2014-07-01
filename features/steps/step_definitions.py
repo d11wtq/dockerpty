@@ -83,8 +83,9 @@ def step_impl(ctx):
 
         try:
             dockerpty.start(ctx.client, ctx.container)
-        except:
-            os_.exit(1)
+        except Exception as e:
+            raise e
+            os._exit(1)
         else:
             os._exit(0)
     else:
@@ -140,6 +141,7 @@ def step_impl(ctx, num):
 @then('I will see the output')
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
+    print(actual)
     wanted = ctx.text.splitlines()
     expect(actual[-len(wanted):]).to.equal(wanted)
 

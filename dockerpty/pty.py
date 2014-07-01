@@ -128,18 +128,16 @@ class PseudoTerminal(object):
 
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
 
-        info = self.container_info()
-        if not info['State']['Running']:
-            self.client.start(self.container, **kwargs)
-
-        options = {"multiplexed": not info["Config"]["Tty"]}
-
-        spec = [
-            ("AttachStdin", io.Pump(sys.stdin, pty_stdin)),
-            ("AttachStdout", io.Pump(pty_stdout, sys.stdout, **options)),
-            ("AttachStderr", io.Pump(pty_stderr, sys.stderr, **options)),
+        mappings = [
+            (io.Stream(sys.stdin), pty_stdin),
+            (pty_stdout, io.Stream(sys.stdout)),
+            (pty_stderr, io.Stream(sys.stderr)),
         ]
-        pumps = [pump for check, pump in spec if info["Config"][check]]
+
+        pumps = [io.Pump(a, b) for (a, b) in mappings if a and b]
+
+        if not self.container_info()['State']['Running']:
+            self.client.start(self.container, **kwargs)
 
         try:
             flags = [io.set_blocking(p, False) for p in pumps]
@@ -168,13 +166,27 @@ class PseudoTerminal(object):
     def sockets(self):
         """
         Returns a tuple of sockets connected to the pty (stdin,stdout,stderr).
+
+        If any of the sockets are not attached in the container, `None` is
+        returned in the tuple.
         """
 
+        info = self.container_info()
+
         def attach_socket(key):
-            return self.client.attach_socket(
-                self.container,
-                {key: 1, 'stream': 1, 'logs': 1},
-            )
+            if info['Config']['Attach{0}'.format(key.capitalize())]:
+                socket = self.client.attach_socket(
+                    self.container,
+                    {key: 1, 'stream': 1, 'logs': 1},
+                )
+                stream = io.Stream(socket)
+
+                if info['Config']['Tty']:
+                    return stream
+                else:
+                    return io.Demuxer(stream)
+            else:
+                return None
 
         return map(attach_socket, ('stdin', 'stdout', 'stderr'))
 

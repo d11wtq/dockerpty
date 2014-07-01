@@ -23,7 +23,7 @@ import select as builtin_select
 
 def set_blocking(fd, blocking=True):
     """
-    Set a the given file-descriptor blocking or non-blocking.
+    Set the given file-descriptor blocking or non-blocking.
 
     Returns the original blocking status.
     """
@@ -31,13 +31,13 @@ def set_blocking(fd, blocking=True):
     old_flag = fcntl.fcntl(fd, fcntl.F_GETFL)
 
     if blocking:
-        new_flag = old_flag | os.O_NONBLOCK
-    else:
         new_flag = old_flag &~ os.O_NONBLOCK
+    else:
+        new_flag = old_flag | os.O_NONBLOCK
 
     fcntl.fcntl(fd, fcntl.F_SETFL, new_flag)
 
-    return bool(old_flag & os.O_NONBLOCK)
+    return not bool(old_flag & os.O_NONBLOCK)
 
 
 def select(read_streams, timeout=0):
@@ -65,112 +65,6 @@ def select(read_streams, timeout=0):
             raise e
 
 
-class Pump(object):
-    """
-    Stream pump class.
-
-    A Pump wraps two file descriptors, reading from one and and writing its
-    data into the other, much like a pipe, but manually managed.
-
-    This abstraction is used to facilitate piping data between the file
-    descriptors associated with the tty, and those associated with a container's
-    allocated pty.
-
-    Pumps are selectable based on the 'read' end of the pipe.
-    """
-
-    def __init__(self, io_from, io_to, multiplexed=False):
-        """
-        Initialize a Pump with a stream to read from and another to write to.
-
-        Both streams must respond to the `fileno()` method.
-        """
-
-        self.fd_from = io_from.fileno()
-        self.fd_to = io_to.fileno()
-        self.multiplexed = multiplexed
-
-
-    def fileno(self):
-        """
-        Returns the `fileno()` of the reader end of the pump.
-
-        This is useful to allow Pumps to function with `select()`.
-        """
-
-        return self.fd_from
-
-
-    def flush(self, n=4096):
-        """
-        Flush `n` bytes of data from the reader stream to the writer stream.
-
-        Returns the number of bytes that were actually flushed. A return value
-        of zero is not an error.
-
-        If EOF has been reached, `None` is returned.
-        """
-
-        try:
-            for chunk in self._read(n):
-                return self._write(chunk)
-        except OSError as e:
-            if e.errno != errno.EPIPE:
-                raise e
-
-
-    def _read(self, n=4096):
-        """
-        Yield n bytes from the stream in 0 or more chunks.
-
-        If we are multiplexed, then we have an 8 byte header that says what
-        stream we should go to and how many bytes can be read.
-        """
-        try:
-            if not self.multiplexed:
-                yield os.read(self.fd_from, n)
-            else:
-                data = os.read(self.fd_from, 8)
-                if len(data) < 8:
-                    return
-
-                _, length = struct.unpack_from('>BxxxL', data)
-                if not length:
-                    return
-
-                done = 0
-                while done < length:
-                    nxt = os.read(self.fd_from, length)
-                    if not nxt:
-                        break
-                    yield nxt
-                    done += len(nxt)
-
-        except OSError as e:
-            if e.errno != errno.EINTR:
-                raise e
-        except IOError as e:
-            if e.errno != errno.EWOULDBLOCK:
-                raise e
-
-
-    def _write(self, data):
-        if not data:
-            return
-
-        while True:
-            try:
-                os.write(self.fd_to, data)
-                return len(data)
-            except OSError as e:
-                if e.errno != errno.EINTR:
-                    raise e
-            except IOError as e:
-                if e.errno != errno.EWOULDBLOCK:
-                    raise e
-
-
-# FIXME: Add the error-checking used in Pump.
 class Stream(object):
     """
     Generic Stream class.
@@ -185,31 +79,50 @@ class Stream(object):
 
         The `fd` object must have a `fileno()` method.
         """
-        self.fd = fd.fileno()
+        self.fd = fd
 
 
     def fileno(self):
         """
-        Returns the fileno() of the file descriptor.
+        Return the fileno() of the file descriptor.
         """
 
-        return self.fd
+        return self.fd.fileno()
 
 
     def read(self, n=4096):
         """
-        Returns `n` bytes of data from the Stream, or None at end of stream.
+        Return `n` bytes of data from the Stream, or None at end of stream.
         """
 
-        return os.read(self.fd, n)
+        try:
+            return os.read(self.fd.fileno(), n)
+        except OSError as e:
+            if e.errno != errno.EINTR:
+                raise e
+        except IOError as e:
+            if e.errno != errno.EWOULDBLOCK:
+                raise e
 
 
     def write(self, data):
         """
-        Writes `data` to the Stream.
+        Write `data` to the Stream.
         """
 
-        return os.write(self.fd, data)
+        if not data:
+            return None
+
+        while True:
+            try:
+                os.write(self.fd.fileno(), data)
+                return len(data)
+            except OSError as e:
+                if e.errno != errno.EINTR:
+                    raise e
+            except IOError as e:
+                if e.errno != errno.EWOULDBLOCK:
+                    raise e
 
 
 class Demuxer(object):
@@ -249,16 +162,21 @@ class Demuxer(object):
 
     def read(self, n=4096):
         """
-        Read `n` bytes of data from the Stream, after demuxing.
+        Read up to `n` bytes of data from the Stream, after demuxing.
 
-        Less than `n` bytes of data may be returned at the end of the Stream,
-        but the number of bytes returned will never exceed `n`.
+        Less than `n` bytes of data may be returned depending on the available
+        payload, but the number of bytes returned will never exceed `n`.
 
         Because demuxing involves scanning 8-byte headers, the actual amount of
-        data read from the underlying stream will be greater than `n`.
+        data read from the underlying stream may be greater than `n`.
         """
 
-        return ''.join([data for data in self._demux(n)])
+        size = self._next_packet_size(n)
+
+        if size <= 0:
+            return
+        else:
+            return self.stream.read(size)
 
 
     def write(self, data):
@@ -269,22 +187,12 @@ class Demuxer(object):
         return self.stream.write(data)
 
 
-    def _demux(self, n):
-        while n > 0:
-            size = self._read_size(n)
-
-            if size <= 0:
-                return
-            else:
-                yield self.stream.read(size)
-                n -= size
-
-    def _read_size(self, n=0):
+    def _next_packet_size(self, n=0):
         size = 0
 
         if self.remain > 0:
             size = min(n, self.remain)
-            self.remain = self.remain - size
+            self.remain -= size
         else:
             data = self.stream.read(8)
             if len(data) == 8:
@@ -293,3 +201,53 @@ class Demuxer(object):
                 self.remain = actual - size
 
         return size
+
+
+class Pump(object):
+    """
+    Stream pump class.
+
+    A Pump wraps two Streams, reading from one and and writing its data into
+    the other, much like a pipe but manually managed.
+
+    This abstraction is used to facilitate piping data between the file
+    descriptors associated with the tty and those associated with a container's
+    allocated pty.
+
+    Pumps are selectable based on the 'read' end of the pipe.
+    """
+
+    def __init__(self, from_stream, to_stream):
+        """
+        Initialize a Pump with a Stream to read from and another to write to.
+        """
+
+        self.from_stream = from_stream
+        self.to_stream = to_stream
+
+
+    def fileno(self):
+        """
+        Returns the `fileno()` of the reader end of the Pump.
+
+        This is useful to allow Pumps to function with `select()`.
+        """
+
+        return self.from_stream.fileno()
+
+
+    def flush(self, n=4096):
+        """
+        Flush `n` bytes of data from the reader Stream to the writer Stream.
+
+        Returns the number of bytes that were actually flushed. A return value
+        of zero is not an error.
+
+        If EOF has been reached, `None` is returned.
+        """
+
+        try:
+            return self.to_stream.write(self.from_stream.read(n))
+        except OSError as e:
+            if e.errno != errno.EPIPE:
+                raise e
