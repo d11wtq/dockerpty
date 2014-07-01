@@ -68,13 +68,21 @@ supposed to work. To run them:
 
 ```
 -bash$ pip install -r requirements-dev.txt
--bash$ behave
+-bash$ behave features/
 ```
 
 You'll need to have docker installed and running locally. The tests use busybox
 container as a test fixture, so are not too heavy.
 
 Step definitions are defined in features/steps/.
+
+There are also unit tests for the parts of the code that are not inherently
+dependent on controlling a TTY. To run those:
+
+```
+-bash$ pip install -r requirements-dev.txt
+-bash$ py.test tests/
+```
 
 Travis CI runs this build inside a UML kernel that is new enough to run docker.
 Your PR will need to pass the build before I can merge it.
