@@ -75,3 +75,10 @@ class TestTerminal(object):
             expect(israw(fd)).to.be.true
 
         expect(israw(fd)).to.be.false
+
+
+    def test_start_does_not_crash_when_fd_is_not_a_tty(self):
+        with tempfile.TemporaryFile() as f:
+            terminal = tty.Terminal(f, raw=True)
+            terminal.start()
+            terminal.stop()
