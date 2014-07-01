@@ -96,7 +96,7 @@ def step_impl(ctx):
             (ctx.rows, ctx.cols)
         )
         ctx.pid = pid
-        util.wait(ctx.pty)
+        util.wait(ctx.pty, timeout=5)
 
 
 @when('I resize the terminal to {rows} x {cols}')
@@ -141,7 +141,6 @@ def step_impl(ctx, num):
 @then('I will see the output')
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
-    print(actual)
     wanted = ctx.text.splitlines()
     expect(actual[-len(wanted):]).to.equal(wanted)
 

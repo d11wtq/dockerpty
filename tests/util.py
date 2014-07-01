@@ -36,12 +36,12 @@ def set_pty_size(fd, size):
     )
 
 
-def wait(fd):
+def wait(fd, timeout=2):
     """
     Wait until data is ready for reading on `fd`.
     """
 
-    return select.select([fd], [], [], 2)[0]
+    return select.select([fd], [], [], timeout)[0]
 
 
 def printable(text):
