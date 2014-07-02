@@ -56,7 +56,7 @@ Feature: Attaching to a docker container non-interactively
 
   Scenario: Running when the container is started
     Given I am using a TTY
-    And I run "/bin/watch cat /etc/issue" in a docker container
+    And I run "/bin/watch -n5 cat /etc/issue" in a docker container
     When I start the container
     And I start dockerpty
     Then I will see the output
