@@ -6,12 +6,6 @@ a docker container, using the Python client.
 [![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)]
 (https://travis-ci.org/d11wtq/dockerpty)
 
-[![Downloads/Day](http://img.shields.io/pypi/dd/dockerpty.svg)]
-(https://pypi.python.org/pypi/dockerpty)
-
-[![Give Tips](http://img.shields.io/gittip/d11wtq.svg)]
-(https://gittip.com/d11wtq)
-
 ## Installation
 
 Via pip:
@@ -127,6 +121,15 @@ size changes and resize the pseudo-terminal as needed.
 
   - Primary author: [Chris Corbyn](https://github.com/d11wtq)
   - Contributor: [Stephen Moore](https://github.com/delfick)
+
+## Donations
+
+I work on open source projects for free and because I genuinely enjoy giving to
+the community, but of course any donations are well-received. You can donate a
+small amount via gittip, if you're feeling generous.
+
+[![Give Tips](http://img.shields.io/gittip/d11wtq.svg)]
+(https://gittip.com/d11wtq)
 
 ## Copyright & Licensing
 
