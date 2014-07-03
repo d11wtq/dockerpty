@@ -124,12 +124,11 @@ size changes and resize the pseudo-terminal as needed.
 
 ## Donations
 
+[![Tip!](http://img.shields.io/gittip/d11wtq.svg)](https://gittip.com/d11wtq)
+
 I work on open source projects for free and because I genuinely enjoy giving to
 the community, but of course any donations are well-received. You can donate a
-small amount via gittip, if you're feeling generous.
-
-[![Give Tips](http://img.shields.io/gittip/d11wtq.svg)]
-(https://gittip.com/d11wtq)
+small amount via [gittip](https://gittip.com/d11wtq) if you're feeling generous.
 
 ## Copyright & Licensing
 
