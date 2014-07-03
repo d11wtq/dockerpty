@@ -6,6 +6,9 @@ a docker container, using the Python client.
 [![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)]
 (https://travis-ci.org/d11wtq/dockerpty)
 
+[![Give Tips](http://img.shields.io/gittip/d11wtq.svg)]
+(http://img.shields.io/gittip/d11wtq.svg)
+
 ## Installation
 
 Via pip:
