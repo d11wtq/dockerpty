@@ -73,14 +73,16 @@ class Stream(object):
     add consistency to the reading of sockets and files alike.
     """
 
+
     """
     Recoverable IO/OS Errors.
     """
     ERRNO_RECOVERABLE = [
         errno.EINTR,
         errno.EDEADLOCK,
-        errno.EWOULDBLOCK
+        errno.EWOULDBLOCK,
     ]
+
 
     def __init__(self, fd):
         """
