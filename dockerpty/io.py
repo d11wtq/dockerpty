@@ -107,7 +107,7 @@ class Stream(object):
         try:
             return os.read(self.fd.fileno(), n)
         except EnvironmentError as e:
-            if e.errno not in Stream.ERRNO_RECOVERABLE
+            if e.errno not in Stream.ERRNO_RECOVERABLE:
                 raise e
 
 
@@ -124,7 +124,7 @@ class Stream(object):
                 os.write(self.fd.fileno(), data)
                 return len(data)
             except EnvironmentError as e:
-                if e.errno not in Stream.ERRNO_RECOVERABLE
+                if e.errno not in Stream.ERRNO_RECOVERABLE:
                     raise e
 
 
