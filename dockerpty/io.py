@@ -73,6 +73,15 @@ class Stream(object):
     add consistency to the reading of sockets and files alike.
     """
 
+    """
+    Recoverable IO/OS Errors.
+    """
+    ERRNO_RECOVERABLE = [
+        errno.EINTR,
+        errno.EDEADLOCK,
+        errno.EWOULDBLOCK
+    ]
+
     def __init__(self, fd):
         """
         Initialize the Stream for the file descriptor `fd`.
@@ -97,11 +106,8 @@ class Stream(object):
 
         try:
             return os.read(self.fd.fileno(), n)
-        except OSError as e:
-            if e.errno != errno.EINTR:
-                raise e
-        except IOError as e:
-            if e.errno != errno.EWOULDBLOCK:
+        except EnvironmentError as e:
+            if e.errno not in Stream.ERRNO_RECOVERABLE
                 raise e
 
 
@@ -117,11 +123,8 @@ class Stream(object):
             try:
                 os.write(self.fd.fileno(), data)
                 return len(data)
-            except OSError as e:
-                if e.errno != errno.EINTR:
-                    raise e
-            except IOError as e:
-                if e.errno != errno.EWOULDBLOCK:
+            except EnvironmentError as e:
+                if e.errno not in Stream.ERRNO_RECOVERABLE
                     raise e
 
 
