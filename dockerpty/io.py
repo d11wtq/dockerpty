@@ -79,7 +79,7 @@ class Stream(object):
     """
     ERRNO_RECOVERABLE = [
         errno.EINTR,
-        errno.EDEADLOCK,
+        errno.EDEADLK,
         errno.EWOULDBLOCK,
     ]
 
