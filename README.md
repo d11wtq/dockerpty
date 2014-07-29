@@ -121,6 +121,7 @@ size changes and resize the pseudo-terminal as needed.
 
   - Primary author: [Chris Corbyn](https://github.com/d11wtq)
   - Contributor: [Stephen Moore](https://github.com/delfick)
+  - Contributor: [Ben Firshman](https://github.com/bfirsh)
 
 ## Donations
 
