@@ -44,12 +44,10 @@ Feature: Attaching to a docker container non-interactively
     Given I am using a TTY
     And I run "/usr/bin/tail -f /etc/issue" in a docker container
     When I start dockerpty
-    And I type "exit"
     And I press ENTER
     Then I will see the output
       """
       Welcome to Buildroot
-      exit
       """
     And The container will still be running
 
