@@ -122,3 +122,9 @@ class Terminal(object):
                 termios.TCSADRAIN,
                 self.original_attributes,
             )
+
+    def __repr__(self):
+        return "{cls}({fd}, raw={raw})".format(
+            cls=type(self).__name__,
+            fd=self.fd,
+            raw=self.raw)

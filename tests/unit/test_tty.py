@@ -50,7 +50,6 @@ class TestTerminal(object):
         terminal.start()
         expect(israw(fd)).to.be.true
 
-
     def test_start_when_not_raw(self):
         fd, __ = pty.openpty()
         terminal = tty.Terminal(os.fdopen(fd), raw=False)
@@ -58,14 +57,12 @@ class TestTerminal(object):
         terminal.start()
         expect(israw(fd)).to.be.false
 
-
     def test_stop_when_raw(self):
         fd, __ = pty.openpty()
         terminal = tty.Terminal(os.fdopen(fd), raw=True)
         terminal.start()
         terminal.stop()
         expect(israw(fd)).to.be.false
-
 
     def test_raw_with_block(self):
         fd, __ = pty.openpty()
@@ -76,9 +73,13 @@ class TestTerminal(object):
 
         expect(israw(fd)).to.be.false
 
-
     def test_start_does_not_crash_when_fd_is_not_a_tty(self):
         with tempfile.TemporaryFile() as f:
             terminal = tty.Terminal(f, raw=True)
             terminal.start()
             terminal.stop()
+
+    def test_repr(self):
+        fd = 'some_fd'
+        terminal = tty.Terminal(fd, raw=True)
+        expect(repr(terminal)).to.equal("Terminal(some_fd, raw=True)")

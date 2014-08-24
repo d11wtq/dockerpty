@@ -110,6 +110,11 @@ class TestStream(object):
         stream = io.Stream(StringIO())
         expect(stream.write('')).to.be.none
 
+    def test_repr(self):
+        fd = StringIO()
+        stream = io.Stream(fd)
+        expect(repr(stream)).to.equal("Stream(%s)" % fd)
+
 
 class TestDemuxer(object):
 
@@ -155,6 +160,11 @@ class TestDemuxer(object):
         demuxer.write(u'test')
         expect(s.getvalue()).to.equal('test')
 
+    def test_repr(self):
+        s = StringIO()
+        demuxer = io.Demuxer(s)
+        expect(repr(demuxer)).to.equal("Demuxer(%s)" % s)
+
 
 class TestPump(object):
 
@@ -177,3 +187,9 @@ class TestPump(object):
         b = StringIO()
         pump = io.Pump(a, b)
         expect(pump.flush(3)).to.equal(2)
+
+    def test_repr(self):
+        a = StringIO(u'fo')
+        b = StringIO()
+        pump = io.Pump(a, b)
+        expect(repr(pump)).to.equal("Pump(from=%s, to=%s)" % (a, b))
