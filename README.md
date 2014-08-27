@@ -120,6 +120,7 @@ size changes and resize the pseudo-terminal as needed.
 ## Contributors
 
   - Primary author: [Chris Corbyn](https://github.com/d11wtq)
+  - Collaborator: [Daniel Nephin](https://github.com/dnephin)
   - Contributor: [Stephen Moore](https://github.com/delfick)
   - Contributor: [Ben Firshman](https://github.com/bfirsh)
 
