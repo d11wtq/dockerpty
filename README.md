@@ -124,14 +124,6 @@ size changes and resize the pseudo-terminal as needed.
   - Contributor: [Stephen Moore](https://github.com/delfick)
   - Contributor: [Ben Firshman](https://github.com/bfirsh)
 
-## Donations
-
-[![Tip!](http://img.shields.io/gittip/d11wtq.svg)](https://gittip.com/d11wtq)
-
-I work on open source projects for free and because I genuinely enjoy giving to
-the community, but of course any donations are well-received. You can donate a
-small amount via [gittip](https://gittip.com/d11wtq) if you're feeling generous.
-
 ## Copyright & Licensing
 
 Copyright &copy; 2014 Chris Corbyn. See the LICENSE.txt file for details.
