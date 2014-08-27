@@ -129,6 +129,9 @@ class Stream(object):
                 if e.errno not in Stream.ERRNO_RECOVERABLE:
                     raise e
 
+    def __repr__(self):
+        return "{cls}({fd})".format(cls=type(self).__name__, fd=self.fd)
+
 
 class Demuxer(object):
     """
@@ -207,6 +210,10 @@ class Demuxer(object):
 
         return size
 
+    def __repr__(self):
+        return "{cls}({stream})".format(cls=type(self).__name__,
+                                        stream=self.stream)
+
 
 class Pump(object):
     """
@@ -256,3 +263,9 @@ class Pump(object):
         except OSError as e:
             if e.errno != errno.EPIPE:
                 raise e
+
+    def __repr__(self):
+        return "{cls}(from={from_stream}, to={to_stream})".format(
+            cls=type(self).__name__,
+            from_stream=self.from_stream,
+            to_stream=self.to_stream)
