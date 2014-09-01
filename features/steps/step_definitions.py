@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from behave import *
-from expects import expect
+from expects import expect, equal, be_true, be_false
 import tests.util as util
 
 import dockerpty
@@ -142,21 +142,21 @@ def step_impl(ctx, num):
 def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
     wanted = ctx.text.splitlines()
-    expect(actual[-len(wanted):]).to.equal(wanted)
+    expect(actual[-len(wanted):]).to(equal(wanted))
 
 
 @then('The PTY will be closed cleanly')
 def step_impl(ctx):
-    expect(util.exit_code(ctx.pid, timeout=5)).to.equal(0)
+    expect(util.exit_code(ctx.pid, timeout=5)).to(equal(0))
 
 
 @then('The container will not be running')
 def step_impl(ctx):
     running = util.container_running(ctx.client, ctx.container, duration=2)
-    expect(running).to.be.false
+    expect(running).to(be_false)
 
 
 @then('The container will still be running')
 def step_impl(ctx):
     running = util.container_running(ctx.client, ctx.container, duration=2)
-    expect(running).to.be.true
+    expect(running).to(be_true)

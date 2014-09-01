@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from expects import expect
+from expects import expect, equal, be_none, be_true, be_false
 import dockerpty.tty as tty
 import tests.util as util
 
@@ -31,14 +31,14 @@ def israw(fd):
 
 def test_size_returns_none_for_non_tty():
     with tempfile.TemporaryFile() as t:
-        expect(tty.size(t)).to.be.none
+        expect(tty.size(t)).to(be_none)
 
 
 def test_size_returns_a_tuple_for_a_tty():
     fd, __ = pty.openpty()
     fd = os.fdopen(fd)
     util.set_pty_size(fd, (43, 120))
-    expect(tty.size(fd)).to.equal((43, 120))
+    expect(tty.size(fd)).to(equal((43, 120)))
 
 
 class TestTerminal(object):
@@ -46,32 +46,32 @@ class TestTerminal(object):
     def test_start_when_raw(self):
         fd, __ = pty.openpty()
         terminal = tty.Terminal(os.fdopen(fd), raw=True)
-        expect(israw(fd)).to.be.false
+        expect(israw(fd)).to(be_false)
         terminal.start()
-        expect(israw(fd)).to.be.true
+        expect(israw(fd)).to(be_true)
 
     def test_start_when_not_raw(self):
         fd, __ = pty.openpty()
         terminal = tty.Terminal(os.fdopen(fd), raw=False)
-        expect(israw(fd)).to.be.false
+        expect(israw(fd)).to(be_false)
         terminal.start()
-        expect(israw(fd)).to.be.false
+        expect(israw(fd)).to(be_false)
 
     def test_stop_when_raw(self):
         fd, __ = pty.openpty()
         terminal = tty.Terminal(os.fdopen(fd), raw=True)
         terminal.start()
         terminal.stop()
-        expect(israw(fd)).to.be.false
+        expect(israw(fd)).to(be_false)
 
     def test_raw_with_block(self):
         fd, __ = pty.openpty()
         fd = os.fdopen(fd)
 
         with tty.Terminal(fd, raw=True):
-            expect(israw(fd)).to.be.true
+            expect(israw(fd)).to(be_true)
 
-        expect(israw(fd)).to.be.false
+        expect(israw(fd)).to(be_false)
 
     def test_start_does_not_crash_when_fd_is_not_a_tty(self):
         with tempfile.TemporaryFile() as f:
@@ -82,4 +82,4 @@ class TestTerminal(object):
     def test_repr(self):
         fd = 'some_fd'
         terminal = tty.Terminal(fd, raw=True)
-        expect(repr(terminal)).to.equal("Terminal(some_fd, raw=True)")
+        expect(repr(terminal)).to(equal("Terminal(some_fd, raw=True)"))
