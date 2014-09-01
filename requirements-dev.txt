@@ -1,4 +1,4 @@
 docker-py>=0.3.2
 pytest>=2.5.2
 behave>=1.2.4
-expects>=0.2.3, < 0.4
+expects>=0.4
