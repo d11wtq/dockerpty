@@ -139,6 +139,7 @@ class PseudoTerminal(object):
         if not self.container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)
 
+        flags = None
         try:
             flags = [io.set_blocking(p, False) for p in pumps]
             with WINCHHandler(self):
