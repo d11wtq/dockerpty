@@ -203,6 +203,8 @@ class Demuxer(object):
             self.remain -= size
         else:
             data = self.stream.read(8)
+            if data is None:
+                return 0
             if len(data) == 8:
                 __, actual = struct.unpack('>BxxxL', data)
                 size = min(n, actual)

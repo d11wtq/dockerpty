@@ -107,7 +107,6 @@ Feature: Attaching to an interactive terminal in a docker container
     And I resize the terminal to 30 x 98
     And I resize the terminal to 28 x 98
     And I resize the terminal to 28 x 105
-    And I wait 3 seconds
     And I type "stty size"
     And I press ENTER
     Then I will see the output

@@ -221,9 +221,12 @@ class PseudoTerminal(object):
 
 
     def _hijack_tty(self, pumps):
+        # Skip stdin for non-interactive
+        pumps = pumps if self.israw() else pumps[1:]
+
         with tty.Terminal(sys.stdin, raw=self.israw()):
             self.resize()
             while True:
-                ready = io.select(pumps, timeout=1)
-                if not all([p.flush() is not None for p in ready]):
+                _ready = io.select(pumps, timeout=10)
+                if all([p.flush() is None for p in pumps]):
                     break
