@@ -224,6 +224,6 @@ class PseudoTerminal(object):
         with tty.Terminal(sys.stdin, raw=self.israw()):
             self.resize()
             while True:
-                ready = io.select(pumps, timeout=1)
-                if not all([p.flush() is not None for p in ready]):
+                ready = io.select(pumps, timeout=60)
+                if all([p.flush() is None for p in ready]):
                     break
