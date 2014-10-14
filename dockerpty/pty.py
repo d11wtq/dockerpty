@@ -139,8 +139,9 @@ class PseudoTerminal(object):
         if not self.container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)
 
+        flags = [io.set_blocking(p, False) for p in pumps]
+
         try:
-            flags = [io.set_blocking(p, False) for p in pumps]
             with WINCHHandler(self):
                 self._hijack_tty(pumps)
         finally:
