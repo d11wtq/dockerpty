@@ -107,6 +107,8 @@ class Stream(object):
         """
 
         try:
+            if hasattr(self.fd, 'recv'):
+                return self.fd.recv(n)
             return os.read(self.fd.fileno(), n)
         except EnvironmentError as e:
             if e.errno not in Stream.ERRNO_RECOVERABLE:
@@ -123,6 +125,9 @@ class Stream(object):
 
         while True:
             try:
+                if hasattr(self.fd, 'send'):
+                    self.fd.send(data)
+                    return len(data)
                 os.write(self.fd.fileno(), data)
                 return len(data)
             except EnvironmentError as e:
