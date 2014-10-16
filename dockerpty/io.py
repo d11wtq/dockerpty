@@ -101,12 +101,22 @@ class Stream(object):
         return self.fd.fileno()
 
 
+    def set_blocking(self, value):
+        if hasattr(self.fd, 'setblocking'):
+            self.fd.setblocking(value)
+            return True
+        else:
+            return set_blocking(self.fd, value)
+
+
     def read(self, n=4096):
         """
         Return `n` bytes of data from the Stream, or None at end of stream.
         """
 
         try:
+            if hasattr(self.fd, 'recv'):
+                return self.fd.recv(n)
             return os.read(self.fd.fileno(), n)
         except EnvironmentError as e:
             if e.errno not in Stream.ERRNO_RECOVERABLE:
@@ -123,6 +133,9 @@ class Stream(object):
 
         while True:
             try:
+                if hasattr(self.fd, 'send'):
+                    self.fd.send(data)
+                    return len(data)
                 os.write(self.fd.fileno(), data)
                 return len(data)
             except EnvironmentError as e:
@@ -166,6 +179,10 @@ class Demuxer(object):
         """
 
         return self.stream.fileno()
+
+
+    def set_blocking(self, value):
+        return self.stream.set_blocking(value)
 
 
     def read(self, n=4096):
@@ -248,6 +265,10 @@ class Pump(object):
         """
 
         return self.from_stream.fileno()
+
+
+    def set_blocking(self, value):
+        return self.from_stream.set_blocking(value)
 
 
     def flush(self, n=4096):

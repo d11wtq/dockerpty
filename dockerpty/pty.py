@@ -16,6 +16,7 @@
 
 import sys
 import signal
+from ssl import SSLError
 
 import dockerpty.io as io
 import dockerpty.tty as tty
@@ -139,7 +140,7 @@ class PseudoTerminal(object):
         if not self.container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)
 
-        flags = [io.set_blocking(p, False) for p in pumps]
+        flags = [p.set_blocking(False) for p in pumps]
 
         try:
             with WINCHHandler(self):
@@ -226,5 +227,9 @@ class PseudoTerminal(object):
             self.resize()
             while True:
                 _ready = io.select(pumps, timeout=60)
-                if all([p.flush() is None for p in pumps]):
-                    break
+                try:
+                    if all([p.flush() is None for p in pumps]):
+                        break
+                except SSLError as e:
+                    if 'The operation did not complete' not in e.strerror:
+                        raise e
