@@ -226,9 +226,9 @@ class PseudoTerminal(object):
         with tty.Terminal(sys.stdin, raw=self.israw()):
             self.resize()
             while True:
-                _ready = io.select(pumps, timeout=60)
+                ready = io.select(pumps, timeout=60)
                 try:
-                    if all([p.flush() is None for p in pumps]):
+                    if all([p.flush() is None for p in ready]):
                         break
                 except SSLError as e:
                     if 'The operation did not complete' not in e.strerror:
