@@ -228,7 +228,7 @@ class PseudoTerminal(object):
             while True:
                 ready = io.select(pumps, timeout=60)
                 try:
-                    if all([p.flush() is None for p in ready]):
+                    if any([p.flush() is None for p in ready]):
                         break
                 except SSLError as e:
                     if 'The operation did not complete' not in e.strerror:
