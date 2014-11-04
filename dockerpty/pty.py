@@ -109,7 +109,7 @@ class PseudoTerminal(object):
     """
 
 
-    def __init__(self, client, container):
+    def __init__(self, client, container, interactive=True):
         """
         Initialize the PTY using the docker.Client instance and container dict.
         """
@@ -117,6 +117,7 @@ class PseudoTerminal(object):
         self.client = client
         self.container = container
         self.raw = None
+        self.interactive = interactive
 
 
     def start(self, **kwargs):
@@ -129,11 +130,14 @@ class PseudoTerminal(object):
 
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
 
+
         mappings = [
-            (io.Stream(sys.stdin), pty_stdin),
             (pty_stdout, io.Stream(sys.stdout)),
             (pty_stderr, io.Stream(sys.stderr)),
         ]
+
+        if self.interactive:
+            mappings.insert(0, (io.Stream(sys.stdin), pty_stdin))
 
         pumps = [io.Pump(a, b) for (a, b) in mappings if a and b]
 
