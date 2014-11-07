@@ -201,7 +201,14 @@ class Demuxer(object):
         if size <= 0:
             return
         else:
-            return self.stream.read(size)
+            data = ''
+            while len(data) < size:
+                nxt = self.stream.read(size - len(data))
+                if not nxt:
+                    # the stream has closed, return what data we got
+                    return data
+                data = "{0}{1}".format(data, nxt)
+            return data
 
 
     def write(self, data):
@@ -219,7 +226,14 @@ class Demuxer(object):
             size = min(n, self.remain)
             self.remain -= size
         else:
-            data = self.stream.read(8)
+            data = ''
+            while len(data) < 8:
+                nxt = self.stream.read(8 - len(data))
+                if not nxt:
+                    # The stream has closed, there's nothing more to read
+                    return 0
+                data = "{0}{1}".format(data, nxt)
+
             if data is None:
                 return 0
             if len(data) == 8:
