@@ -116,6 +116,23 @@ class TestStream(object):
         expect(repr(stream)).to(equal("Stream(%s)" % fd))
 
 
+class SlowStream(object):
+    def __init__(self, chunks):
+        self.chunks = chunks
+
+    def read(self, n=4096):
+        if len(self.chunks) == 0:
+            return ''
+        else:
+            if len(self.chunks[0]) <= n:
+                chunk = self.chunks[0]
+                self.chunks = self.chunks[1:]
+            else:
+                chunk = self.chunks[0][:n]
+                self.chunks[0] = self.chunks[0][n:]
+            return chunk
+
+
 class TestDemuxer(object):
 
     def create_fixture(self):
@@ -138,6 +155,31 @@ class TestDemuxer(object):
 
     def test_reading_multiple_chunks(self):
         demuxer = io.Demuxer(self.create_fixture())
+        expect(demuxer.read(32)).to(equal('foo'))
+        expect(demuxer.read(32)).to(equal('d'))
+
+
+    def test_reading_data_from_slow_stream(self):
+        slow_stream = SlowStream([
+            "\x01\x00\x00\x00\x00\x00\x00\x03f",
+            "oo",
+            "\x01\x00\x00\x00\x00\x00\x00\x01d",
+        ])
+
+        demuxer = io.Demuxer(slow_stream)
+        expect(demuxer.read(32)).to(equal('foo'))
+        expect(demuxer.read(32)).to(equal('d'))
+
+
+    def test_reading_size_from_slow_stream(self):
+        slow_stream = SlowStream([
+            "\x01\x00\x00\x00",
+            "\x00\x00\x00\x03foo",
+            "\x01\x00",
+            "\x00\x00\x00\x00\x00\x01d",
+        ])
+
+        demuxer = io.Demuxer(slow_stream)
         expect(demuxer.read(32)).to(equal('foo'))
         expect(demuxer.read(32)).to(equal('d'))
 
