@@ -19,6 +19,7 @@ import fcntl
 import errno
 import struct
 import select as builtin_select
+import six
 
 
 def set_blocking(fd, blocking=True):
@@ -31,7 +32,7 @@ def set_blocking(fd, blocking=True):
     old_flag = fcntl.fcntl(fd, fcntl.F_GETFL)
 
     if blocking:
-        new_flag = old_flag &~ os.O_NONBLOCK
+        new_flag = old_flag & ~ os.O_NONBLOCK
     else:
         new_flag = old_flag | os.O_NONBLOCK
 
@@ -59,7 +60,8 @@ def select(read_streams, timeout=0):
         )[0]
     except builtin_select.error as e:
         # POSIX signals interrupt select()
-        if e[0] == errno.EINTR:
+        no = e.errno if six.PY3 else e[0]
+        if no == errno.EINTR:
             return []
         else:
             raise e
@@ -73,7 +75,6 @@ class Stream(object):
     add consistency to the reading of sockets and files alike.
     """
 
-
     """
     Recoverable IO/OS Errors.
     """
@@ -83,7 +84,6 @@ class Stream(object):
         errno.EWOULDBLOCK,
     ]
 
-
     def __init__(self, fd):
         """
         Initialize the Stream for the file descriptor `fd`.
@@ -92,7 +92,6 @@ class Stream(object):
         """
         self.fd = fd
 
-
     def fileno(self):
         """
         Return the fileno() of the file descriptor.
@@ -100,14 +99,12 @@ class Stream(object):
 
         return self.fd.fileno()
 
-
     def set_blocking(self, value):
         if hasattr(self.fd, 'setblocking'):
             self.fd.setblocking(value)
             return True
         else:
             return set_blocking(self.fd, value)
-
 
     def read(self, n=4096):
         """
@@ -121,7 +118,6 @@ class Stream(object):
         except EnvironmentError as e:
             if e.errno not in Stream.ERRNO_RECOVERABLE:
                 raise e
-
 
     def write(self, data):
         """
@@ -170,7 +166,6 @@ class Demuxer(object):
         self.stream = stream
         self.remain = 0
 
-
     def fileno(self):
         """
         Returns the fileno() of the underlying Stream.
@@ -180,10 +175,8 @@ class Demuxer(object):
 
         return self.stream.fileno()
 
-
     def set_blocking(self, value):
         return self.stream.set_blocking(value)
-
 
     def read(self, n=4096):
         """
@@ -201,15 +194,14 @@ class Demuxer(object):
         if size <= 0:
             return
         else:
-            data = ''
+            data = six.binary_type()
             while len(data) < size:
                 nxt = self.stream.read(size - len(data))
                 if not nxt:
                     # the stream has closed, return what data we got
                     return data
-                data = "{0}{1}".format(data, nxt)
+                data = data + nxt
             return data
-
 
     def write(self, data):
         """
@@ -218,7 +210,6 @@ class Demuxer(object):
 
         return self.stream.write(data)
 
-
     def _next_packet_size(self, n=0):
         size = 0
 
@@ -226,13 +217,13 @@ class Demuxer(object):
             size = min(n, self.remain)
             self.remain -= size
         else:
-            data = ''
+            data = six.binary_type()
             while len(data) < 8:
                 nxt = self.stream.read(8 - len(data))
                 if not nxt:
                     # The stream has closed, there's nothing more to read
                     return 0
-                data = "{0}{1}".format(data, nxt)
+                data = data + nxt
 
             if data is None:
                 return 0
@@ -270,7 +261,6 @@ class Pump(object):
         self.from_stream = from_stream
         self.to_stream = to_stream
 
-
     def fileno(self):
         """
         Returns the `fileno()` of the reader end of the Pump.
@@ -280,10 +270,8 @@ class Pump(object):
 
         return self.from_stream.fileno()
 
-
     def set_blocking(self, value):
         return self.from_stream.set_blocking(value)
-
 
     def flush(self, n=4096):
         """

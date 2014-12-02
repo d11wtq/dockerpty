@@ -15,7 +15,14 @@
 # limitations under the License.
 
 language: python
-python: [ "2.7" ]
+matrix:
+  include:
+    - python: "2.7"
+      env: REQUIREMENTS=requirements-dev.txt VENV=python2.7
+    - python: "pypy"
+      env: REQUIREMENTS=requirements-dev.txt VENV=pypy
+    - python: "3.3"
+      env: REQUIREMENTS=requirements3-dev.txt VENV=python3.3
 
 before_install: |
   # needed for the UML container
@@ -37,5 +44,5 @@ before_install: |
   chmod +x tests.sh
   chmod +x run.sh
 
-install: pip install -r requirements-dev.txt
+install: pip install -r $REQUIREMENTS
 script: ./run.sh
