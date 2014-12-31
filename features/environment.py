@@ -22,7 +22,7 @@ def before_all(ctx):
     Pulls down busybox:latest before anything is tested.
     """
 
-    ctx.client = docker.Client()
+    ctx.client = docker.Client(version='1.15')
     ctx.client.pull('busybox:latest')
 
 
