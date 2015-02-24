@@ -60,7 +60,7 @@ mount --bind /run/resolvconf/resolv.conf /etc/resolv.conf
 sleep 5
 
 # activate virtualenv
-source $HOME/virtualenv/python2.7/bin/activate
+source $HOME/virtualenv/$VENV/bin/activate
 
 # run the build
 py.test -q tests && behave -c

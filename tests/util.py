@@ -21,6 +21,7 @@ import select
 import os
 import re
 import time
+import six
 
 
 def set_pty_size(fd, size):
@@ -57,7 +58,6 @@ def write(fd, data):
     """
     Write `data` to the PTY at `fd`.
     """
-
     os.write(fd, data)
 
 
@@ -69,7 +69,7 @@ def readchar(fd):
     while True:
         ready = wait(fd)
         if len(ready) == 0:
-            return ''
+            return six.binary_type()
         else:
             for s in ready:
                 return os.read(s, 1)
@@ -82,15 +82,15 @@ def readline(fd):
     The line includes the line ending.
     """
 
-    output = []
+    output = six.binary_type()
     while True:
         char = readchar(fd)
         if char:
-            output.append(char)
-            if char == "\n":
-                return ''.join(output)
+            output = output + char
+            if char == b"\n":
+                return output
         else:
-            return ''.join(output)
+            return output
 
 
 def read(fd):
@@ -98,13 +98,13 @@ def read(fd):
     Read all output from the PTY at `fd`, or nothing if no data to read.
     """
 
-    output = []
+    output = six.binary_type()
     while True:
         line = readline(fd)
         if line:
-            output.append(line)
+            output = output + line
         else:
-            return "".join(output)
+            return output.decode()
 
 
 def read_printable(fd):

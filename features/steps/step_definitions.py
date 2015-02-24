@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from behave import *
+from behave import then, given, when
 from expects import expect, equal, be_true, be_false
 import tests.util as util
 
@@ -23,8 +23,8 @@ import pty
 import sys
 import os
 import signal
-import errno
 import time
+import six
 
 
 @given('I am using a TTY')
@@ -97,6 +97,7 @@ def step_impl(ctx):
         )
         ctx.pid = pid
         util.wait(ctx.pty, timeout=5)
+    time.sleep(1) # give the terminal some time to print prompt
 
 
 @when('I resize the terminal to {rows} x {cols}')
@@ -113,22 +114,21 @@ def step_impl(ctx, rows, cols):
 
 @when('I type "{text}"')
 def step_impl(ctx, text):
-    util.write(ctx.pty, text)
-
+    util.write(ctx.pty, text.encode())
 
 @when('I press {key}')
 def step_impl(ctx, key):
     mappings = {
-        "enter": "\x0a",
-        "up":    "\x1b[A",
-        "down":  "\x1b[B",
-        "right": "\x1b[C",
-        "left":  "\x1b[D",
-        "esc":   "\x1b",
-        "c-c":   "\x03",
-        "c-d":   "\x04",
-        "c-p":   "\x10",
-        "c-q":   "\x11",
+        "enter": b"\x0a",
+        "up":    b"\x1b[A",
+        "down":  b"\x1b[B",
+        "right": b"\x1b[C",
+        "left":  b"\x1b[D",
+        "esc":   b"\x1b",
+        "c-c":   b"\x03",
+        "c-d":   b"\x04",
+        "c-p":   b"\x10",
+        "c-q":   b"\x11",
     }
     util.write(ctx.pty, mappings[key.lower()])
 

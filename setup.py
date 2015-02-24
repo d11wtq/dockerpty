@@ -17,8 +17,10 @@
 from setuptools import setup
 import os
 
+
 def fopen(filename):
     return open(os.path.join(os.path.dirname(__file__), filename))
+
 
 def read(filename):
     return fopen(filename).read()
@@ -31,6 +33,7 @@ setup(
     url='https://github.com/d11wtq/dockerpty',
     author='Chris Corbyn',
     author_email='chris@w3style.co.uk',
+    install_requires=['six >= 1.3.0'],
     license='Apache 2.0',
     keywords='docker, tty, pty, terminal',
     packages=['dockerpty'],
