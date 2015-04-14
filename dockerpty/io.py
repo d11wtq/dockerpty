@@ -111,13 +111,15 @@ class Stream(object):
         Return `n` bytes of data from the Stream, or None at end of stream.
         """
 
-        try:
-            if hasattr(self.fd, 'recv'):
-                return self.fd.recv(n)
-            return os.read(self.fd.fileno(), n)
-        except EnvironmentError as e:
-            if e.errno not in Stream.ERRNO_RECOVERABLE:
-                raise e
+        while True:
+            try:
+                if hasattr(self.fd, 'recv'):
+                    return self.fd.recv(n)
+                return os.read(self.fd.fileno(), n)
+            except EnvironmentError as e:
+                if e.errno not in Stream.ERRNO_RECOVERABLE:
+                    raise e
+
 
     def write(self, data):
         """
