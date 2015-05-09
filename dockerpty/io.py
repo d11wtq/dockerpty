@@ -41,14 +41,14 @@ def set_blocking(fd, blocking=True):
     return not bool(old_flag & os.O_NONBLOCK)
 
 
-def select(read_streams, timeout=0):
+def select(read_streams, write_streams, timeout=0):
     """
-    Select the streams from `read_streams` that are ready for reading.
+    Select the streams from `read_streams` that are ready for reading, and
+    streams from `write_streams` ready for writing.
 
-    Uses `select.select()` internally but returns a flat list of streams.
+    Uses `select.select()` internally but only returns two lists of ready streams.
     """
 
-    write_streams = []
     exception_streams = []
 
     try:
@@ -57,12 +57,12 @@ def select(read_streams, timeout=0):
             write_streams,
             exception_streams,
             timeout,
-        )[0]
+        )[0:2]
     except builtin_select.error as e:
         # POSIX signals interrupt select()
         no = e.errno if six.PY3 else e[0]
         if no == errno.EINTR:
-            return []
+            return ([], [])
         else:
             raise e
 
@@ -91,6 +91,9 @@ class Stream(object):
         The `fd` object must have a `fileno()` method.
         """
         self.fd = fd
+        self.buffer = b''
+        self.close_requested = False
+        self.closed = False
 
     def fileno(self):
         """
@@ -123,22 +126,60 @@ class Stream(object):
 
     def write(self, data):
         """
-        Write `data` to the Stream.
+        Write `data` to the Stream. Not all data may be written right away.
+        Use select to find when the stream is writeable, and call do_write()
+        to flush the internal buffer.
         """
 
         if not data:
             return None
 
+        self.buffer += data
+        self.do_write()
+
+        return len(data)
+
+    def do_write(self):
+        """
+        Flushes as much pending data from the internal write buffer as possible.
+        """
         while True:
             try:
+                written = 0
+
                 if hasattr(self.fd, 'send'):
-                    self.fd.send(data)
-                    return len(data)
-                os.write(self.fd.fileno(), data)
-                return len(data)
+                    written = self.fd.send(self.buffer)
+                else:
+                    written = os.write(self.fd.fileno(), self.buffer)
+
+                self.buffer = self.buffer[written:]
+
+                # try to close after writes if a close was requested
+                if self.close_requested and len(self.buffer) == 0:
+                    self.close()
+
+                return written
             except EnvironmentError as e:
                 if e.errno not in Stream.ERRNO_RECOVERABLE:
                     raise e
+
+    def needs_write(self):
+        """
+        Returns True if the stream has data waiting to be written.
+        """
+        return len(self.buffer) > 0
+
+    def close(self):
+        self.close_requested = True
+
+        # We don't close the fd immediately, as there may still be data pending
+        # to write.
+        if not self.closed and len(self.buffer) == 0:
+            self.closed = True
+            if hasattr(self.fd, 'close'):
+                self.fd.close()
+            else:
+                os.close(self.fd.fileno())
 
     def __repr__(self):
         return "{cls}({fd})".format(cls=type(self).__name__, fd=self.fd)
@@ -212,6 +253,33 @@ class Demuxer(object):
 
         return self.stream.write(data)
 
+    def needs_write(self):
+        """
+        Delegates to underlying Stream.
+        """
+
+        if hasattr(self.stream, 'needs_write'):
+            return self.stream.needs_write()
+
+        return False
+
+    def do_write(self):
+        """
+        Delegates to underlying Stream.
+        """
+
+        if hasattr(self.stream, 'do_write'):
+            return self.stream.do_write()
+
+        return False
+
+    def close(self):
+        """
+        Delegates to underlying Stream.
+        """
+
+        return self.stream.close()
+
     def _next_packet_size(self, n=0):
         size = 0
 
@@ -255,13 +323,18 @@ class Pump(object):
     Pumps are selectable based on the 'read' end of the pipe.
     """
 
-    def __init__(self, from_stream, to_stream):
+    def __init__(self, from_stream, to_stream, wait_for_output=True):
         """
         Initialize a Pump with a Stream to read from and another to write to.
+
+        `wait_for_output` is a flag that says that we need to wait for EOF
+        on the from_stream in order to consider this pump as "done".
         """
 
         self.from_stream = from_stream
         self.to_stream = to_stream
+        self.eof = False
+        self.wait_for_output = wait_for_output
 
     def fileno(self):
         """
@@ -286,10 +359,27 @@ class Pump(object):
         """
 
         try:
-            return self.to_stream.write(self.from_stream.read(n))
+            read = self.from_stream.read(n)
+
+            if read is None or len(read) == 0:
+                self.eof = True
+                self.to_stream.close()
+                return None
+
+            return self.to_stream.write(read)
         except OSError as e:
             if e.errno != errno.EPIPE:
                 raise e
+
+    def is_done(self):
+        """
+        Returns True if the read stream is done (either it's returned EOF or
+        the pump doesn't have wait_for_output set), and the write
+        side does not have pending bytes to send.
+        """
+
+        return (not self.wait_for_output or self.eof) and \
+                not (hasattr(self.to_stream, 'needs_write') and self.to_stream.needs_write())
 
     def __repr__(self):
         return "{cls}(from={from_stream}, to={to_stream})".format(

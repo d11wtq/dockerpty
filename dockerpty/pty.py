@@ -132,14 +132,14 @@ class PseudoTerminal(object):
 
 
         mappings = [
-            (pty_stdout, io.Stream(sys.stdout)),
-            (pty_stderr, io.Stream(sys.stderr)),
+            (pty_stdout, io.Stream(sys.stdout), True),
+            (pty_stderr, io.Stream(sys.stderr), True),
         ]
 
         if self.interactive:
-            mappings.insert(0, (io.Stream(sys.stdin), pty_stdin))
+            mappings.insert(0, (io.Stream(sys.stdin), pty_stdin, False))
 
-        pumps = [io.Pump(a, b) for (a, b) in mappings if a and b]
+        pumps = [io.Pump(a, b, c) for (a, b, c) in mappings if a and b]
 
         if not self.container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)
@@ -230,10 +230,20 @@ class PseudoTerminal(object):
         with tty.Terminal(sys.stdin, raw=self.israw()):
             self.resize()
             while True:
-                ready = io.select(pumps, timeout=60)
+                read_pumps = [p for p in pumps if not p.eof]
+                write_streams = [p.to_stream for p in pumps if p.to_stream.needs_write()]
+
+                read_ready, write_ready = io.select(read_pumps, write_streams, timeout=60)
                 try:
-                    if any([p.flush() is None for p in ready]):
+                    for write_stream in write_ready:
+                        write_stream.do_write()
+
+                    for pump in read_ready:
+                        pump.flush()
+
+                    if all([p.is_done() for p in pumps]):
                         break
+
                 except SSLError as e:
                     if 'The operation did not complete' not in e.strerror:
                         raise e

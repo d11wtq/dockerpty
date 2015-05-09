@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from expects import expect, equal, be_none, be_true, be_false
+from expects import expect, equal, be_none, be_true, be_false, raise_error
 from io import StringIO, BytesIO
 import dockerpty.io as io
 
@@ -24,6 +24,26 @@ import fcntl
 import socket
 import tempfile
 import six
+
+
+class WriteLimitedWrapper:
+    def __init__(self, socket, limit):
+        self.socket = socket
+        self.limit = limit
+
+    def send(self, string, *args):
+        return self.socket.send(string[:self.limit], *args)
+
+    def __getattr__(self, name):
+        return getattr(self.socket, name)
+
+
+def is_fd_closed(fd):
+    try:
+        os.fstat(fd)
+        return False
+    except OSError:
+        return True
 
 
 def test_set_blocking_changes_fd_flags():
@@ -49,13 +69,17 @@ def test_set_blocking_returns_previous_state():
 def test_select_returns_streams_for_reading():
         a, b = socket.socketpair()
         a.send(b'test')
-        expect(io.select([a, b], timeout=0)).to(equal([b]))
+        expect(io.select([a, b], [], timeout=0)).to(equal(([b], [])))
         b.send(b'test')
-        expect(io.select([a, b], timeout=0)).to(equal([a, b]))
+        expect(io.select([a, b], [], timeout=0)).to(equal(([a, b], [])))
         b.recv(4)
-        expect(io.select([a, b], timeout=0)).to(equal([a]))
+        expect(io.select([a, b], [], timeout=0)).to(equal(([a], [])))
         a.recv(4)
-        expect(io.select([a, b], timeout=0)).to(equal([]))
+        expect(io.select([a, b], [], timeout=0)).to(equal(([], [])))
+
+def test_select_returns_streams_for_writing():
+    a, b = socket.socketpair()
+    expect(io.select([a, b], [a, b], timeout=0)).to(equal(([], [a, b])))
 
 
 class TestStream(object):
@@ -109,6 +133,39 @@ class TestStream(object):
         stream = io.Stream(fd)
         expect(repr(stream)).to(equal("Stream(%s)" % fd))
 
+    def test_partial_writes(self):
+        a, b = socket.socketpair()
+        a = WriteLimitedWrapper(a, 5)
+        stream = io.Stream(a)
+        written = stream.write(b'123456789')
+        expect(written).to(equal(9))
+        read = b.recv(1024)
+        expect(read).to(equal(b'12345'))
+
+        expect(stream.needs_write()).to(be_true)
+        stream.do_write()
+
+        read = b.recv(1024)
+        expect(read).to(equal(b'6789'))
+        expect(stream.needs_write()).to(be_false)
+
+    def test_close(self):
+        a, b = socket.socketpair()
+        stream = io.Stream(a)
+        stream.close()
+        expect(is_fd_closed(a.fileno())).to(be_true)
+
+    def test_close_with_pending_data(self):
+        a, b = socket.socketpair()
+        a = WriteLimitedWrapper(a, 5)
+        stream = io.Stream(a)
+        stream.write(b'123456789')
+
+        stream.close()
+        expect(is_fd_closed(a.fileno())).to(be_false)
+
+        stream.do_write()
+        expect(is_fd_closed(a.fileno())).to(be_true)
 
 class SlowStream(object):
     def __init__(self, chunks):
@@ -219,3 +276,21 @@ class TestPump(object):
         b = StringIO()
         pump = io.Pump(a, b)
         expect(repr(pump)).to(equal("Pump(from=%s, to=%s)" % (a, b)))
+
+    def test_is_done_when_pump_does_not_require_output_to_finish(self):
+        a = StringIO()
+        b = StringIO()
+        pump = io.Pump(a, b, False)
+        expect(pump.is_done()).to(be_true)
+
+    def test_is_done_when_pump_does_require_output_to_finish(self):
+        a = StringIO(u'123')
+        b = StringIO()
+        pump = io.Pump(a, b, True)
+        expect(pump.is_done()).to(be_false)
+
+        pump.flush()
+        expect(pump.is_done()).to(be_false)
+
+        pump.flush()
+        expect(pump.is_done()).to(be_true)
