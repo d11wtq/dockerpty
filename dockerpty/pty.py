@@ -109,7 +109,7 @@ class PseudoTerminal(object):
     """
 
 
-    def __init__(self, client, container, interactive=True):
+    def __init__(self, client, container, interactive=True, stdout=None, stderr=None, stdin=None):
         """
         Initialize the PTY using the docker.Client instance and container dict.
         """
@@ -118,6 +118,9 @@ class PseudoTerminal(object):
         self.container = container
         self.raw = None
         self.interactive = interactive
+        self.stdout = stdout or sys.stdout
+        self.stderr = stderr or sys.stderr
+        self.stdin = stdin or sys.stdin
 
 
     def start(self, **kwargs):
@@ -132,12 +135,12 @@ class PseudoTerminal(object):
 
 
         mappings = [
-            (pty_stdout, io.Stream(sys.stdout), True),
-            (pty_stderr, io.Stream(sys.stderr), True),
+            (pty_stdout, io.Stream(self.stdout), True),
+            (pty_stderr, io.Stream(self.stderr), True),
         ]
 
         if self.interactive:
-            mappings.insert(0, (io.Stream(sys.stdin), pty_stdin, False))
+            mappings.insert(0, (io.Stream(self.stdin), pty_stdin, False))
 
         pumps = [io.Pump(a, b, c) for (a, b, c) in mappings if a and b]
 
@@ -164,7 +167,7 @@ class PseudoTerminal(object):
 
         if self.raw is None:
             info = self.container_info()
-            self.raw = sys.stdout.isatty() and info['Config']['Tty']
+            self.raw = self.stdout.isatty() and info['Config']['Tty']
 
         return self.raw
 
@@ -208,7 +211,7 @@ class PseudoTerminal(object):
         if not self.israw():
             return
 
-        size = size or tty.size(sys.stdout)
+        size = size or tty.size(self.stdout)
 
         if size is not None:
             rows, cols = size
@@ -227,7 +230,7 @@ class PseudoTerminal(object):
 
 
     def _hijack_tty(self, pumps):
-        with tty.Terminal(sys.stdin, raw=self.israw()):
+        with tty.Terminal(self.stdin, raw=self.israw()):
             self.resize()
             while True:
                 read_pumps = [p for p in pumps if not p.eof]
