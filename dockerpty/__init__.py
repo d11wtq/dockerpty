@@ -17,11 +17,11 @@
 from dockerpty.pty import PseudoTerminal
 
 
-def start(client, container, interactive=True):
+def start(client, container, interactive=True, stdout=None, stderr=None, stdin=None):
     """
     Present the PTY of the container inside the current process.
 
     This is just a wrapper for PseudoTerminal(client, container).start()
     """
 
-    PseudoTerminal(client, container, interactive=interactive).start()
+    PseudoTerminal(client, container, interactive=interactive, stdout=stdout, stderr=stderr, stdin=stdin).start()
