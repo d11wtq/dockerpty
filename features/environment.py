@@ -15,14 +15,15 @@
 # limitations under the License.
 
 import docker
-
+from docker.utils import kwargs_from_env
 
 def before_all(ctx):
     """
     Pulls down busybox:latest before anything is tested.
     """
 
-    ctx.client = docker.AutoVersionClient()
+    kwargs = kwargs_from_env(assert_hostname=False)
+    ctx.client = docker.AutoVersionClient(**kwargs)
     ctx.client.pull('busybox:latest')
 
 
