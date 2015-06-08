@@ -132,17 +132,16 @@ class PseudoTerminal(object):
         """
 
         pty_stdin, pty_stdout, pty_stderr = self.sockets()
+        pumps = []
 
+        if pty_stdin and self.interactive:
+            pumps.append(io.Pump(io.Stream(self.stdin), pty_stdin, wait_for_output=False))
 
-        mappings = [
-            (pty_stdout, io.Stream(self.stdout), True),
-            (pty_stderr, io.Stream(self.stderr), True),
-        ]
+        if pty_stdout:
+            pumps.append(io.Pump(pty_stdout, io.Stream(self.stdout), propagate_close=False))
 
-        if self.interactive:
-            mappings.insert(0, (io.Stream(self.stdin), pty_stdin, False))
-
-        pumps = [io.Pump(a, b, c) for (a, b, c) in mappings if a and b]
+        if pty_stderr:
+            pumps.append(io.Pump(pty_stderr, io.Stream(self.stderr), propagate_close=False))
 
         if not self.container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)
