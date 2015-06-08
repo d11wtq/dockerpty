@@ -138,10 +138,10 @@ class PseudoTerminal(object):
             pumps.append(io.Pump(io.Stream(self.stdin), pty_stdin, wait_for_output=False))
 
         if pty_stdout:
-            pumps.append(io.Pump(pty_stdout, io.Stream(self.stdout)))
+            pumps.append(io.Pump(pty_stdout, io.Stream(self.stdout), propagate_close=False))
 
         if pty_stderr:
-            pumps.append(io.Pump(pty_stderr, io.Stream(self.stderr)))
+            pumps.append(io.Pump(pty_stderr, io.Stream(self.stderr), propagate_close=False))
 
         if not self.container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)

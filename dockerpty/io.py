@@ -323,7 +323,11 @@ class Pump(object):
     Pumps are selectable based on the 'read' end of the pipe.
     """
 
-    def __init__(self, from_stream, to_stream, wait_for_output=True):
+    def __init__(self,
+                 from_stream,
+                 to_stream,
+                 wait_for_output=True,
+                 propagate_close=True):
         """
         Initialize a Pump with a Stream to read from and another to write to.
 
@@ -335,6 +339,7 @@ class Pump(object):
         self.to_stream = to_stream
         self.eof = False
         self.wait_for_output = wait_for_output
+        self.propagate_close = propagate_close
 
     def fileno(self):
         """
@@ -363,7 +368,8 @@ class Pump(object):
 
             if read is None or len(read) == 0:
                 self.eof = True
-                self.to_stream.close()
+                if self.propagate_close:
+                    self.to_stream.close()
                 return None
 
             return self.to_stream.write(read)
