@@ -14,15 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import docker
-
+from docker.utils import kwargs_from_env
 
 def before_all(ctx):
     """
     Pulls down busybox:latest before anything is tested.
     """
 
-    ctx.client = docker.Client(version='1.15')
+    if sys.platform.startswith('darwin') or sys.platform.startswith('win32'):
+        kwargs = kwargs_from_env()
+        # Hack borrowed from here:
+        # http://docker-py.readthedocs.org/en/latest/boot2docker/
+        # See also: https://github.com/docker/docker-py/issues/406
+        kwargs['tls'].assert_hostname = False
+        kwargs['version'] = '1.15'
+        ctx.client = docker.Client(**kwargs)
+    else:
+        ctx.client = docker.Client(version='1.15')
     ctx.client.pull('busybox:latest')
 
 

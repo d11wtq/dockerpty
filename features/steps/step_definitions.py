@@ -89,7 +89,12 @@ def step_impl(ctx):
         else:
             os._exit(0)
     else:
-        tty = os.ttyname(fd)
+        try:
+            tty = os.ttyname(fd)
+        except OSError as ex:
+            # Not supported on OS X. But since we're not using this
+            # TTY name anyway, let the test pass.
+            tty = 'OSX'
         ctx.pty = fd
         util.set_pty_size(
             ctx.pty,
