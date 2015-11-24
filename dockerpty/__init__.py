@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dockerpty.pty import PseudoTerminal
+from dockerpty.pty import PseudoTerminal, RunOperation
 
 
 def start(client, container, interactive=True, stdout=None, stderr=None, stdin=None, logs=None):
@@ -24,4 +24,7 @@ def start(client, container, interactive=True, stdout=None, stderr=None, stdin=N
     This is just a wrapper for PseudoTerminal(client, container).start()
     """
 
-    PseudoTerminal(client, container, interactive=interactive, stdout=stdout, stderr=stderr, stdin=stdin, logs=logs).start()
+    operation = RunOperation(client, container, interactive=interactive, stdout=stdout,
+                             stderr=stderr, stdin=stdin, logs=logs)
+
+    PseudoTerminal(client, operation).start()

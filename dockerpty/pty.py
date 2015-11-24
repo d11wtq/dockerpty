@@ -39,7 +39,6 @@ class WINCHHandler(object):
         self.pty = pty
         self.original_handler = None
 
-
     def __enter__(self):
         """
         Invoked on entering a `with` block.
@@ -48,14 +47,12 @@ class WINCHHandler(object):
         self.start()
         return self
 
-
     def __exit__(self, *_):
         """
         Invoked on exiting a `with` block.
         """
 
         self.stop()
-
 
     def start(self):
         """
@@ -71,7 +68,6 @@ class WINCHHandler(object):
 
         self.original_handler = signal.signal(signal.SIGWINCH, handle)
 
-
     def stop(self):
         """
         Stop trapping WINCH signals and restore the previous WINCH handler.
@@ -81,34 +77,31 @@ class WINCHHandler(object):
             signal.signal(signal.SIGWINCH, self.original_handler)
 
 
-class PseudoTerminal(object):
+class Operation(object):
+
+    def israw(self, **kwargs):
+        """
+        are we dealing with a tty or not?
+        """
+        raise NotImplementedError()
+
+    def start(self, **kwargs):
+        """
+        start execution
+        """
+        raise NotImplementedError()
+
+    def resize(self, height, width, **kwargs):
+        """
+        if we have terminal, resize it
+        """
+        raise NotImplementedError()
+
+
+class RunOperation(Operation):
     """
-    Wraps the pseudo-TTY (PTY) allocated to a docker container.
-
-    The PTY is managed via the current process' TTY until it is closed.
-
-    Example:
-
-        import docker
-        from dockerpty import PseudoTerminal
-
-        client = docker.Client()
-        container = client.create_container(
-            image='busybox:latest',
-            stdin_open=True,
-            tty=True,
-            command='/bin/sh',
-        )
-
-        # hijacks the current tty until the pty is closed
-        PseudoTerminal(client, container).start()
-
-    Care is taken to ensure all file descriptors are restored on exit. For
-    example, you can attach to a running container from within a Python REPL
-    and when the container exits, the user will be returned to the Python REPL
-    without adverse effects.
+    class for handling `docker run`-like command
     """
-
 
     def __init__(self, client, container, interactive=True, stdout=None, stderr=None, stdin=None, logs=None):
         """
@@ -148,21 +141,12 @@ class PseudoTerminal(object):
         if pty_stderr:
             pumps.append(io.Pump(pty_stderr, io.Stream(self.stderr), propagate_close=False))
 
-        if not self.container_info()['State']['Running']:
+        if not self._container_info()['State']['Running']:
             self.client.start(self.container, **kwargs)
 
-        flags = [p.set_blocking(False) for p in pumps]
+        return pumps
 
-        try:
-            with WINCHHandler(self):
-                self._hijack_tty(pumps)
-        finally:
-            if flags:
-                for (pump, flag) in zip(pumps, flags):
-                    io.set_blocking(pump, flag)
-
-
-    def israw(self):
+    def israw(self, **kwargs):
         """
         Returns True if the PTY should operate in raw mode.
 
@@ -170,13 +154,12 @@ class PseudoTerminal(object):
         """
 
         if self.raw is None:
-            info = self.container_info()
+            info = self._container_info()
             self.raw = self.stdout.isatty() and info['Config']['Tty']
 
         return self.raw
 
-
-    def sockets(self):
+    def _sockets(self):
         """
         Returns a tuple of sockets connected to the pty (stdin,stdout,stderr).
 
@@ -184,7 +167,7 @@ class PseudoTerminal(object):
         returned in the tuple.
         """
 
-        info = self.container_info()
+        info = self._container_info()
 
         def attach_socket(key):
             if info['Config']['Attach{0}'.format(key.capitalize())]:
@@ -203,6 +186,71 @@ class PseudoTerminal(object):
 
         return map(attach_socket, ('stdin', 'stdout', 'stderr'))
 
+    def resize(self, height, width, **kwargs):
+        """
+        resize pty within container
+        """
+        self.client.resize(self.container, height=height, width=width)
+
+    def _container_info(self):
+        """
+        Thin wrapper around client.inspect_container().
+        """
+
+        return self.client.inspect_container(self.container)
+
+
+
+class PseudoTerminal(object):
+    """
+    Wraps the pseudo-TTY (PTY) allocated to a docker container.
+
+    The PTY is managed via the current process' TTY until it is closed.
+
+    Example:
+
+        import docker
+        from dockerpty import PseudoTerminal
+
+        client = docker.Client()
+        container = client.create_container(
+            image='busybox:latest',
+            stdin_open=True,
+            tty=True,
+            command='/bin/sh',
+        )
+
+        # hijacks the current tty until the pty is closed
+        PseudoTerminal(client, container).start()
+
+    Care is taken to ensure all file descriptors are restored on exit. For
+    example, you can attach to a running container from within a Python REPL
+    and when the container exits, the user will be returned to the Python REPL
+    without adverse effects.
+    """
+
+    def __init__(self, client, operation):
+        """
+        Initialize the PTY using the docker.Client instance and container dict.
+        """
+
+        self.client = client
+        self.operation = operation
+
+
+    def start(self):
+        pumps = self.operation.start()
+
+        flags = [p.set_blocking(False) for p in pumps]
+
+        try:
+            with WINCHHandler(self):
+                self._hijack_tty(pumps)
+        finally:
+            if flags:
+                for (pump, flag) in zip(pumps, flags):
+                    io.set_blocking(pump, flag)
+
 
     def resize(self, size=None):
         """
@@ -212,30 +260,22 @@ class PseudoTerminal(object):
         it will be determined by the size of the current TTY.
         """
 
-        if not self.israw():
+        if not self.operation.israw():
             return
 
-        size = size or tty.size(self.stdout)
+        size = size or tty.size(self.operation.stdout)
 
         if size is not None:
             rows, cols = size
             try:
-                self.client.resize(self.container, height=rows, width=cols)
-            except IOError: # Container already exited
+                self.operation.resize(height=rows, width=cols)
+            except IOError:  # Container already exited
                 pass
 
 
-    def container_info(self):
-        """
-        Thin wrapper around client.inspect_container().
-        """
-
-        return self.client.inspect_container(self.container)
-
-
     def _hijack_tty(self, pumps):
-        with tty.Terminal(self.stdin, raw=self.israw()):
-            self.resize()
+        with tty.Terminal(self.operation.stdin, raw=self.operation.israw()):
+            self.operation.resize()
             while True:
                 read_pumps = [p for p in pumps if not p.eof]
                 write_streams = [p.to_stream for p in pumps if p.to_stream.needs_write()]
