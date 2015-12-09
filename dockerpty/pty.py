@@ -129,7 +129,7 @@ class RunOperation(Operation):
         is closed.
         """
 
-        pty_stdin, pty_stdout, pty_stderr = sockets or self.sockets()
+        pty_stdin, pty_stdout, pty_stderr = sockets or self._sockets()
         pumps = []
 
         if pty_stdin and self.interactive:
@@ -200,6 +200,86 @@ class RunOperation(Operation):
         return self.client.inspect_container(self.container)
 
 
+def exec_create(client, container, command, interactive=True):
+    exec_id = client.exec_create(container, command, tty=interactive, stdin=interactive)
+    return exec_id
+
+
+class ExecOperation(Operation):
+    """
+    class for handling `docker exec`-like command
+    """
+
+    def __init__(self, client, exec_id, interactive=True, stdout=None, stderr=None, stdin=None):
+        self.exec_id = exec_id
+        self.client = client
+        self.raw = None
+        self.interactive = interactive
+        self.stdout = stdout or sys.stdout
+        self.stderr = stderr or sys.stderr
+        self.stdin = stdin or sys.stdin
+        self._info = None
+
+    def start(self):
+        """
+        start execution
+        """
+        stream = self._socket()
+        pumps = []
+
+        if self.interactive:
+            pumps.append(io.Pump(io.Stream(self.stdin), stream, wait_for_output=False))
+
+        pumps.append(io.Pump(stream, io.Stream(self.stdout), propagate_close=False))
+        # FIXME: since exec_start returns a single socket, how do we
+        #        distinguish between stdout and stderr?
+        # pumps.append(io.Pump(stream, io.Stream(self.stderr), propagate_close=False))
+
+        return pumps
+
+    def israw(self, **kwargs):
+        """
+        Returns True if the PTY should operate in raw mode.
+
+        If the exec was not started with tty=True, this will return False.
+        """
+
+        if self.raw is None:
+            self.raw = self.stdout.isatty() and self.is_process_tty()
+
+        return self.raw
+
+    def _socket(self):
+        """
+        Return a single socket which is processing all I/O to exec
+        """
+        socket = self.client.exec_start(self.exec_id, socket=True, tty=self.interactive)
+        stream = io.Stream(socket)
+        if self.is_process_tty():
+            return stream
+        else:
+            return io.Demuxer(stream)
+
+    def resize(self, height, width, **kwargs):
+        """
+        resize pty of an execed process
+        """
+        self.client.exec_resize(self.exec_id, height=height, width=width)
+
+    def is_process_tty(self):
+        """
+        does execed process have allocated tty?
+        """
+        return self._exec_info()["ProcessConfig"]["tty"]
+
+    def _exec_info(self):
+        """
+        Caching wrapper around client.exec_inspect
+        """
+        if self._info is None:
+            self._info = self.client.exec_inspect(self.exec_id)
+        return self._info
+
 
 class PseudoTerminal(object):
     """
@@ -237,7 +317,6 @@ class PseudoTerminal(object):
         self.client = client
         self.operation = operation
 
-
     def start(self):
         pumps = self.operation.start()
 
@@ -250,7 +329,6 @@ class PseudoTerminal(object):
             if flags:
                 for (pump, flag) in zip(pumps, flags):
                     io.set_blocking(pump, flag)
-
 
     def resize(self, size=None):
         """
@@ -272,10 +350,9 @@ class PseudoTerminal(object):
             except IOError:  # Container already exited
                 pass
 
-
     def _hijack_tty(self, pumps):
         with tty.Terminal(self.operation.stdin, raw=self.operation.israw()):
-            self.operation.resize()
+            self.resize()
             while True:
                 read_pumps = [p for p in pumps if not p.eof]
                 write_streams = [p.to_stream for p in pumps if p.to_stream.needs_write()]

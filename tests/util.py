@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import errno
 import termios
 import struct
 import fcntl
@@ -72,7 +73,15 @@ def readchar(fd):
             return six.binary_type()
         else:
             for s in ready:
-                return os.read(s, 1)
+                try:
+                    return os.read(s, 1)
+                except OSError as ex:
+                    if ex.errno == errno.EIO:
+                        # exec ends with:
+                        #   OSError: [Errno 5] Input/output error
+                        # no idea why
+                        return ""
+                    raise
 
 
 def readline(fd):
@@ -86,7 +95,7 @@ def readline(fd):
     while True:
         char = readchar(fd)
         if char:
-            output = output + char
+            output += char
             if char == b"\n":
                 return output
         else:
