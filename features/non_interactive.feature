@@ -22,42 +22,31 @@ Feature: Attaching to a docker container non-interactively
 
   Scenario: Capturing output
     Given I am using a TTY
-    And I run "/usr/bin/tail -f /etc/issue" in a docker container
+    And I run "/bin/tail -f -n1 /etc/passwd" in a docker container
     When I start dockerpty
     Then I will see the output
       """
-      Welcome to Buildroot
+      nobody:x:99:99:nobody:/home:/bin/false
       """
 
 
   Scenario: Capturing errors
     Given I am using a TTY
-    And I run "sh -c 'tail -f /etc/issue 1>&2'" in a docker container
+    And I run "sh -c 'tail -f -n1 /etc/passwd 1>&2'" in a docker container
     When I start dockerpty
     Then I will see the output
       """
-      Welcome to Buildroot
+      nobody:x:99:99:nobody:/home:/bin/false
       """
 
 
   Scenario: Ignoring input
     Given I am using a TTY
-    And I run "/usr/bin/tail -f /etc/issue" in a docker container
+    And I run "/bin/tail -n1 -f /etc/passwd" in a docker container
     When I start dockerpty
     And I press ENTER
     Then I will see the output
       """
-      Welcome to Buildroot
+      nobody:x:99:99:nobody:/home:/bin/false
       """
     And The container will still be running
-
-
-  Scenario: Running when the container is started
-    Given I am using a TTY
-    And I run "/bin/watch -n5 cat /etc/issue" in a docker container
-    When I start the container
-    And I start dockerpty
-    Then I will see the output
-      """
-      Welcome to Buildroot
-      """

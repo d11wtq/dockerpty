@@ -22,11 +22,11 @@ Feature: Attaching to a docker container with stdin open
 
   Scenario: Capturing output
     Given I am using a TTY
-    And I run "tail -f /etc/issue" in a docker container with stdin open
+    And I run "tail -n1 -f /etc/passwd" in a docker container with stdin open
     When I start dockerpty
     Then I will see the output
       """
-      Welcome to Buildroot
+      nobody:x:99:99:nobody:/home:/bin/false
       """
 
 
