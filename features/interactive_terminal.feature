@@ -30,6 +30,16 @@ Feature: Attaching to an interactive terminal in a docker container
       """
 
 
+  Scenario: Starting the PTY againt container with disabled logging
+    Given I am using a TTY
+    And I run "/bin/sh" in a docker container with a PTY and disabled logging
+    When I start dockerpty
+    Then I will see the output
+      """
+      / #
+      """
+
+
   Scenario: Controlling input
     Given I am using a TTY
     And I run "/bin/sh" in a docker container with a PTY

@@ -49,6 +49,18 @@ def step_impl(ctx, cmd):
     )
 
 
+@given('I run "{cmd}" in a docker container with a PTY and disabled logging')
+def step_impl(ctx, cmd):
+    ctx.container = ctx.client.create_container(
+        image='busybox:latest',
+        command=cmd,
+        stdin_open=True,
+        tty=True,
+        host_config={"LogConfig": {
+            "Type": "none"
+        }}
+    )
+
 @given('I run "{cmd}" in a docker container')
 def step_impl(ctx, cmd):
     ctx.container = ctx.client.create_container(
@@ -82,7 +94,7 @@ def step_impl(ctx):
         sys.stderr = open(tty, 'w')
 
         try:
-            dockerpty.start(ctx.client, ctx.container)
+            dockerpty.start(ctx.client, ctx.container, logs=0)
         except Exception as e:
             raise e
             os._exit(1)

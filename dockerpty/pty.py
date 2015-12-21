@@ -16,6 +16,7 @@
 
 import sys
 import signal
+import warnings
 from ssl import SSLError
 
 import dockerpty.io as io
@@ -109,10 +110,14 @@ class PseudoTerminal(object):
     """
 
 
-    def __init__(self, client, container, interactive=True, stdout=None, stderr=None, stdin=None):
+    def __init__(self, client, container, interactive=True, stdout=None, stderr=None, stdin=None, logs=None):
         """
         Initialize the PTY using the docker.Client instance and container dict.
         """
+
+        if logs is None:
+            warnings.warn("The default behaviour of dockerpty is changing. Please add logs=1 to your dockerpty.start call to maintain existing behaviour. See https://github.com/d11wtq/dockerpty/issues/51 for details.", DeprecationWarning)
+            logs = 1
 
         self.client = client
         self.container = container
@@ -121,7 +126,7 @@ class PseudoTerminal(object):
         self.stdout = stdout or sys.stdout
         self.stderr = stderr or sys.stderr
         self.stdin = stdin or sys.stdin
-
+        self.logs = logs
 
     def start(self, **kwargs):
         """
@@ -185,7 +190,7 @@ class PseudoTerminal(object):
             if info['Config']['Attach{0}'.format(key.capitalize())]:
                 socket = self.client.attach_socket(
                     self.container,
-                    {key: 1, 'stream': 1, 'logs': 1},
+                    {key: 1, 'stream': 1, 'logs': self.logs},
                 )
                 stream = io.Stream(socket)
 
