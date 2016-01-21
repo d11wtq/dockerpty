@@ -128,7 +128,7 @@ class PseudoTerminal(object):
         self.stdin = stdin or sys.stdin
         self.logs = logs
 
-    def start(self, **kwargs):
+    def start(self, sockets=None, **kwargs):
         """
         Present the PTY of the container inside the current process.
 
@@ -136,7 +136,7 @@ class PseudoTerminal(object):
         is closed.
         """
 
-        pty_stdin, pty_stdout, pty_stderr = self.sockets()
+        pty_stdin, pty_stdout, pty_stderr = sockets or self.sockets()
         pumps = []
 
         if pty_stdin and self.interactive:
