@@ -101,7 +101,6 @@ def step_impl(ctx):
         else:
             os._exit(0)
     else:
-        tty = os.ttyname(fd)
         ctx.pty = fd
         util.set_pty_size(
             ctx.pty,
