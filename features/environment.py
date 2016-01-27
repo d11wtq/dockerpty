@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import docker
-from docker.utils import kwargs_from_env
 from docker.errors import NotFound
+
+from utils import get_client
 
 
 IMAGE = "busybox:latest"
@@ -27,8 +27,7 @@ def before_all(ctx):
     Pulls down busybox:latest before anything is tested.
     """
 
-    kwargs = kwargs_from_env(assert_hostname=False)
-    ctx.client = docker.AutoVersionClient(**kwargs)
+    ctx.client = get_client()
     try:
         ctx.client.inspect_image(IMAGE)
     except NotFound:

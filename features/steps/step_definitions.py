@@ -25,6 +25,8 @@ import os
 import signal
 import time
 
+from utils import get_client
+
 
 def alloc_pty(ctx, f, *args, **kwargs):
     pid, fd = pty.fork()
@@ -41,7 +43,9 @@ def alloc_pty(ctx, f, *args, **kwargs):
         # kwargs["stderr"] = open(tty, 'w')
         # kwargs["stdin"] = open(tty, 'r')
 
-        f(*args, **kwargs)
+        # Create a new client for the child process to avoid concurrency issues
+        client = get_client()
+        f(client, *args, **kwargs)
         sys.exit(0)
     else:
         ctx.pty = fd
@@ -128,27 +132,27 @@ def step_impl(ctx):
 
 @when('I start dockerpty')
 def step_impl(ctx):
-    alloc_pty(ctx, dockerpty.start, ctx.client, ctx.container, logs=0)
+    alloc_pty(ctx, dockerpty.start, ctx.container, logs=0)
 
 
 @when('I exec "{cmd}" in a running docker container')
 def step_impl(ctx, cmd):
-    alloc_pty(ctx, dockerpty.exec_command, ctx.client, ctx.container, cmd, interactive=False)
+    alloc_pty(ctx, dockerpty.exec_command, ctx.container, cmd, interactive=False)
 
 
 @when('I exec "{cmd}" in a running docker container with a PTY')
 def step_impl(ctx, cmd):
-    alloc_pty(ctx, dockerpty.exec_command, ctx.client, ctx.container, cmd, interactive=True)
+    alloc_pty(ctx, dockerpty.exec_command, ctx.container, cmd, interactive=True)
 
 
 @when('I start exec')
 def step_impl(ctx):
-    alloc_pty(ctx, dockerpty.start_exec, ctx.client, ctx.exec_id, interactive=False)
+    alloc_pty(ctx, dockerpty.start_exec, ctx.exec_id, interactive=False)
 
 
 @when('I start exec with a PTY')
 def step_impl(ctx):
-    alloc_pty(ctx, dockerpty.start_exec, ctx.client, ctx.exec_id, interactive=True)
+    alloc_pty(ctx, dockerpty.start_exec, ctx.exec_id, interactive=True)
 
 
 @when('I resize the terminal to {rows} x {cols}')
