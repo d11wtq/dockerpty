@@ -24,7 +24,39 @@ import sys
 import os
 import signal
 import time
-import six
+
+
+def alloc_pty(ctx, f, *args, **kwargs):
+    pid, fd = pty.fork()
+
+    if pid == pty.CHILD:
+        tty = os.ttyname(0)
+
+        sys.stdin = open(tty, 'r')
+        sys.stdout = open(tty, 'w')
+        sys.stderr = open(tty, 'w')
+
+        # alternative way of doing ^ is to do:
+        # kwargs["stdout"] = open(tty, 'w')
+        # kwargs["stderr"] = open(tty, 'w')
+        # kwargs["stdin"] = open(tty, 'r')
+
+        f(*args, **kwargs)
+        sys.exit(0)
+    else:
+        ctx.pty = fd
+        util.set_pty_size(
+            ctx.pty,
+            (ctx.rows, ctx.cols)
+        )
+        ctx.pid = pid
+        util.wait(ctx.pty, timeout=5)
+    time.sleep(1)  # give the terminal some time to print prompt
+
+    # util.exit_code can be called only once
+    ctx.exit_code = util.exit_code(ctx.pid, timeout=5)
+    if ctx.exit_code != 0:
+        raise Exception("child process did not finish correctly")
 
 
 @given('I am using a TTY')
@@ -57,9 +89,10 @@ def step_impl(ctx, cmd):
         stdin_open=True,
         tty=True,
         host_config={"LogConfig": {
-            "Type": "none"
+            "Type": "none"  # there is not "none" driver on 1.8
         }}
     )
+
 
 @given('I run "{cmd}" in a docker container')
 def step_impl(ctx, cmd):
@@ -67,6 +100,11 @@ def step_impl(ctx, cmd):
         image='busybox:latest',
         command=cmd,
     )
+
+
+@given('I exec "{cmd}" in a docker container with a PTY')
+def step_impl(ctx, cmd):
+    ctx.exec_id = dockerpty.exec_create(ctx.client, ctx.container, cmd, interactive=True)
 
 
 @given('I run "{cmd}" in a docker container with stdin open')
@@ -78,6 +116,11 @@ def step_impl(ctx, cmd):
     )
 
 
+@given('I start the container')
+def step_impl(ctx):
+    ctx.client.start(ctx.container)
+
+
 @when('I start the container')
 def step_impl(ctx):
     ctx.client.start(ctx.container)
@@ -85,30 +128,27 @@ def step_impl(ctx):
 
 @when('I start dockerpty')
 def step_impl(ctx):
-    pid, fd = pty.fork()
+    alloc_pty(ctx, dockerpty.start, ctx.client, ctx.container, logs=0)
 
-    if pid == pty.CHILD:
-        tty = os.ttyname(0)
-        sys.stdin = open(tty, 'r')
-        sys.stdout = open(tty, 'w')
-        sys.stderr = open(tty, 'w')
 
-        try:
-            dockerpty.start(ctx.client, ctx.container, logs=0)
-        except Exception as e:
-            raise e
-            os._exit(1)
-        else:
-            os._exit(0)
-    else:
-        ctx.pty = fd
-        util.set_pty_size(
-            ctx.pty,
-            (ctx.rows, ctx.cols)
-        )
-        ctx.pid = pid
-        util.wait(ctx.pty, timeout=5)
-    time.sleep(1) # give the terminal some time to print prompt
+@when('I exec "{cmd}" in a running docker container')
+def step_impl(ctx, cmd):
+    alloc_pty(ctx, dockerpty.exec_command, ctx.client, ctx.container, cmd, interactive=False)
+
+
+@when('I exec "{cmd}" in a running docker container with a PTY')
+def step_impl(ctx, cmd):
+    alloc_pty(ctx, dockerpty.exec_command, ctx.client, ctx.container, cmd, interactive=True)
+
+
+@when('I start exec')
+def step_impl(ctx):
+    alloc_pty(ctx, dockerpty.start_exec, ctx.client, ctx.exec_id, interactive=False)
+
+
+@when('I start exec with a PTY')
+def step_impl(ctx):
+    alloc_pty(ctx, dockerpty.start_exec, ctx.client, ctx.exec_id, interactive=True)
 
 
 @when('I resize the terminal to {rows} x {cols}')
@@ -119,13 +159,14 @@ def step_impl(ctx, rows, cols):
         ctx.pty,
         (ctx.rows, ctx.cols)
     )
-    time.sleep(0.2)
+    time.sleep(1)
     os.kill(ctx.pid, signal.SIGWINCH)
 
 
 @when('I type "{text}"')
 def step_impl(ctx, text):
     util.write(ctx.pty, text.encode())
+
 
 @when('I press {key}')
 def step_impl(ctx, key):
@@ -146,6 +187,7 @@ def step_impl(ctx, key):
 
 @then('I will see the output')
 def step_impl(ctx):
+    # you should check `actual` when tests fail
     actual = util.read_printable(ctx.pty).splitlines()
     wanted = ctx.text.splitlines()
     expect(actual[-len(wanted):]).to(equal(wanted))
@@ -153,7 +195,9 @@ def step_impl(ctx):
 
 @then('The PTY will be closed cleanly')
 def step_impl(ctx):
-    expect(util.exit_code(ctx.pid, timeout=5)).to(equal(0))
+    if not hasattr(ctx, "exit_code"):
+        ctx.exit_code = util.exit_code(ctx.pid, timeout=5)
+    expect(ctx.exit_code).to(equal(0))
 
 
 @then('The container will not be running')

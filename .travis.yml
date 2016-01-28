@@ -30,10 +30,10 @@ matrix:
       env: REQUIREMENTS=requirements-dev.txt VENV=pypy
       services:
         - docker
-    - python: "3.3"
+    - python: "3.4"
       env: REQUIREMENTS=requirements3-dev.txt VENV=python3.3
       services:
         - docker
 
 install: pip install -r $REQUIREMENTS
-script: py.test -q tests && behave -c
+script: py.test -q tests && behave -c --no-capture -q

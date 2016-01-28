@@ -16,6 +16,11 @@
 
 import docker
 from docker.utils import kwargs_from_env
+from docker.errors import NotFound
+
+
+IMAGE = "busybox:latest"
+
 
 def before_all(ctx):
     """
@@ -24,7 +29,10 @@ def before_all(ctx):
 
     kwargs = kwargs_from_env(assert_hostname=False)
     ctx.client = docker.AutoVersionClient(**kwargs)
-    ctx.client.pull('busybox:latest')
+    try:
+        ctx.client.inspect_image(IMAGE)
+    except NotFound:
+        ctx.client.pull(IMAGE)
 
 
 def after_scenario(ctx, scenario):
