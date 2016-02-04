@@ -97,6 +97,10 @@ class Operation(object):
         """
         raise NotImplementedError()
 
+    def sockets(self):
+        """Return sockets for streams."""
+        raise NotImplementedError()
+
 
 class RunOperation(Operation):
     """
@@ -129,7 +133,7 @@ class RunOperation(Operation):
         is closed.
         """
 
-        pty_stdin, pty_stdout, pty_stderr = sockets or self._sockets()
+        pty_stdin, pty_stdout, pty_stderr = sockets or self.sockets()
         pumps = []
 
         if pty_stdin and self.interactive:
@@ -159,7 +163,7 @@ class RunOperation(Operation):
 
         return self.raw
 
-    def _sockets(self):
+    def sockets(self):
         """
         Returns a tuple of sockets connected to the pty (stdin,stdout,stderr).
 
@@ -220,11 +224,11 @@ class ExecOperation(Operation):
         self.stdin = stdin or sys.stdin
         self._info = None
 
-    def start(self):
+    def start(self, sockets=None, **kwargs):
         """
         start execution
         """
-        stream = self._socket()
+        stream = sockets or self.sockets()
         pumps = []
 
         if self.interactive:
@@ -249,7 +253,7 @@ class ExecOperation(Operation):
 
         return self.raw
 
-    def _socket(self):
+    def sockets(self):
         """
         Return a single socket which is processing all I/O to exec
         """
@@ -317,8 +321,11 @@ class PseudoTerminal(object):
         self.client = client
         self.operation = operation
 
-    def start(self):
-        pumps = self.operation.start()
+    def sockets(self):
+        return self.operation.sockets()
+
+    def start(self, sockets=None):
+        pumps = self.operation.start(sockets=sockets)
 
         flags = [p.set_blocking(False) for p in pumps]
 
