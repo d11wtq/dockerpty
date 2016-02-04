@@ -27,7 +27,7 @@ def read(filename):
 
 setup(
     name='dockerpty',
-    version='0.3.4',
+    version='0.4.0',
     description='Python library to use the pseudo-tty of a docker container',
     long_description=read('README.md'),
     url='https://github.com/d11wtq/dockerpty',
