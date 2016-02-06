@@ -177,7 +177,7 @@ class RunOperation(Operation):
             if info['Config']['Attach{0}'.format(key.capitalize())]:
                 socket = self.client.attach_socket(
                     self.container,
-                    {key: 1, 'stream': 1, 'logs': self.logs},
+                    {key: 1, 'stream': 1, 'logs': self.logs, 'detachKeys': 'ctrl-a,a'},
                 )
                 stream = io.Stream(socket)
 
