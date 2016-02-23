@@ -313,7 +313,7 @@ class Pump(object):
     """
     Stream pump class.
 
-    A Pump wraps two Streams, reading from one and and writing its data into
+    A Pump wraps two Streams, reading from one and writing its data into
     the other, much like a pipe but manually managed.
 
     This abstraction is used to facilitate piping data between the file
