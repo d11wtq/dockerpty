@@ -47,20 +47,15 @@ def alloc_pty(ctx, f, *args, **kwargs):
         client = get_client()
         f(client, *args, **kwargs)
         sys.exit(0)
-    else:
-        ctx.pty = fd
-        util.set_pty_size(
-            ctx.pty,
-            (ctx.rows, ctx.cols)
-        )
-        ctx.pid = pid
-        util.wait(ctx.pty, timeout=5)
-    time.sleep(1)  # give the terminal some time to print prompt
 
-    # util.exit_code can be called only once
-    ctx.exit_code = util.exit_code(ctx.pid, timeout=5)
-    if ctx.exit_code != 0:
-        raise Exception("child process did not finish correctly")
+    ctx.pty = fd
+    util.set_pty_size(
+        ctx.pty,
+        (ctx.rows, ctx.cols)
+    )
+    ctx.pid = pid
+    ctx.exit_code = -1
+    util.wait(ctx.pty, timeout=5)
 
 
 @given('I am using a TTY')
@@ -199,7 +194,8 @@ def step_impl(ctx):
 
 @then('The PTY will be closed cleanly')
 def step_impl(ctx):
-    if not hasattr(ctx, "exit_code"):
+    # if not hasattr(ctx, "exit_code"):
+    if ctx.exit_code < 0:
         ctx.exit_code = util.exit_code(ctx.pid, timeout=5)
     expect(ctx.exit_code).to(equal(0))
 

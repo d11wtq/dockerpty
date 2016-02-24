@@ -136,12 +136,12 @@ def exit_code(pid, timeout=5):
 
     start = time.time()
     while True:
-        _, status = os.waitpid(pid, os.WNOHANG)
-        if os.WIFEXITED(status):
+        rpid, status = os.waitpid(pid, os.WNOHANG)
+        if rpid != 0 and os.WIFEXITED(status):
             return os.WEXITSTATUS(status)
-        else:
-            if (time.time() - start) > timeout:
-                return -1
+        if (time.time() - start) > timeout:
+            return -1
+        time.sleep(0.1)
 
 
 def container_running(client, container, duration=2):
