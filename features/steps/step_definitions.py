@@ -26,9 +26,10 @@ import signal
 import time
 
 from utils import get_client
-
+from multiprocessing.queues import SimpleQueue
 
 def alloc_pty(ctx, f, *args, **kwargs):
+    queue = SimpleQueue()
     pid, fd = pty.fork()
 
     if pid == pty.CHILD:
@@ -45,7 +46,8 @@ def alloc_pty(ctx, f, *args, **kwargs):
 
         # Create a new client for the child process to avoid concurrency issues
         client = get_client()
-        f(client, *args, **kwargs)
+        ret = f(client, *args, **kwargs)
+        queue.put(ret)
         sys.exit(0)
     else:
         ctx.pty = fd
@@ -61,6 +63,9 @@ def alloc_pty(ctx, f, *args, **kwargs):
     ctx.exit_code = util.exit_code(ctx.pid, timeout=5)
     if ctx.exit_code != 0:
         raise Exception("child process did not finish correctly")
+
+    if not queue.empty():
+        ctx.return_value = queue.get()
 
 
 @given('I am using a TTY')
@@ -195,6 +200,11 @@ def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
     wanted = ctx.text.splitlines()
     expect(actual[-len(wanted):]).to(equal(wanted))
+
+
+@then('The exit code is {value}')
+def step_impl(ctx, value):
+    expect(ctx.return_value['ExitCode']).to(equal(int(value)))
 
 
 @then('The PTY will be closed cleanly')

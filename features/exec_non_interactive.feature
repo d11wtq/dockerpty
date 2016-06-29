@@ -53,3 +53,11 @@ Feature: Executing command in a running docker container non-interactively
       nobody:x:99:99:nobody:/home:/bin/false
       """
     And The container will still be running
+
+
+  Scenario: Getting the exit code
+    Given I am using a TTY
+    And I run "cat" in a docker container with stdin open
+    And I start the container
+    When I exec "sh -c 'exit 4'" in a running docker container
+    Then the exit code is 4

@@ -32,16 +32,18 @@ def start(client, container, interactive=True, stdout=None, stderr=None, stdin=N
 
 def exec_command(
         client, container, command, interactive=True, stdout=None, stderr=None, stdin=None):
-    """
-    Run provided command via exec API in provided container.
+    """Run provided command via exec API in provided container.
 
     This is just a wrapper for PseudoTerminal(client, container).exec_command()
+
+    Returns a dictionary that allows you to fetch the exit code with exec_command(..)['ExitCode']
     """
     exec_id = exec_create(client, container, command, interactive=interactive)
 
     operation = ExecOperation(client, exec_id,
                               interactive=interactive, stdout=stdout, stderr=stderr, stdin=stdin)
     PseudoTerminal(client, operation).start()
+    return client.exec_inspect(exec_id)
 
 
 def start_exec(client, exec_id, interactive=True, stdout=None, stderr=None, stdin=None):
