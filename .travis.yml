@@ -30,8 +30,8 @@ matrix:
       env: REQUIREMENTS=requirements-dev.txt VENV=pypy
       services:
         - docker
-    - python: "3.4"
-      env: REQUIREMENTS=requirements3-dev.txt VENV=python3.4
+    - python: "3.5"
+      env: REQUIREMENTS=requirements3-dev.txt VENV=python3.5
       services:
         - docker
 
