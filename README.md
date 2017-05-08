@@ -3,8 +3,7 @@
 Provides the functionality needed to operate the pseudo-tty (PTY) allocated to
 a docker container, using the Python client.
 
-[![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)]
-(https://travis-ci.org/d11wtq/dockerpty)
+[![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)](https://travis-ci.org/d11wtq/dockerpty)
 
 ## Installation
 
@@ -63,7 +62,7 @@ and can re-attach with another `dockerpty.start()` call.
 ## Tests
 
 If you want to hack on dockerpty and send a PR, you'll need to run the tests.
-In the features/ directory, are features/user stories for how dockerpty is
+In the `features/` directory, are features/user stories for how dockerpty is
 supposed to work. To run them:
 
 ```
@@ -74,7 +73,7 @@ supposed to work. To run them:
 You'll need to have docker installed and running locally. The tests use busybox
 container as a test fixture, so are not too heavy.
 
-Step definitions are defined in features/steps/.
+Step definitions are defined in `features/steps/`.
 
 There are also unit tests for the parts of the code that are not inherently
 dependent on controlling a TTY. To run those:
@@ -98,7 +97,7 @@ container (a PTY) to which the container's stdin, stdout and stderr are all
 connected.
 
 The docker API provides a way to access the three sockets connected to the PTY.
-If with access to the host system's TTY file descriptors and the container's
+With access to the host system's TTY file descriptors and the container's
 PTY file descriptors, it is trivial to simply 'pipe' data written to these file
 descriptors between the host and the container. Doing this makes the user's
 terminal effectively become the pseudo-terminal from inside the container.
