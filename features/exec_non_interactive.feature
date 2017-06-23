@@ -25,9 +25,9 @@ Feature: Executing command in a running docker container non-interactively
     And I run "cat" in a docker container with stdin open
     And I start the container
     When I exec "/bin/tail -f -n1 /etc/passwd" in a running docker container
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
 
 
@@ -36,9 +36,9 @@ Feature: Executing command in a running docker container non-interactively
     And I run "cat" in a docker container with stdin open
     And I start the container
     When I exec "sh -c 'tail -f -n1 /etc/passwd 1>&2'" in a running docker container
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
 
 
@@ -48,8 +48,8 @@ Feature: Executing command in a running docker container non-interactively
     And I start the container
     When I exec "/bin/tail -f -n1 /etc/passwd" in a running docker container
     And I press ENTER
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
     And The container will still be running

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 from docker.errors import NotFound
 
 from utils import get_client
@@ -44,3 +46,8 @@ def after_scenario(ctx, scenario):
             ctx.client.remove_container(ctx.container, force=True)
         except:
             pass
+
+
+def before_scenario(context, scenario):
+    if "skip3" in scenario.effective_tags and sys.version_info >= (3,0):
+        scenario.skip("Marked with @skip3 and running on Python 3")

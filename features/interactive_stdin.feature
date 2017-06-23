@@ -24,9 +24,9 @@ Feature: Attaching to a docker container with stdin open
     Given I am using a TTY
     And I run "tail -n1 -f /etc/passwd" in a docker container with stdin open
     When I start dockerpty
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
 
 
@@ -76,6 +76,7 @@ Feature: Attaching to a docker container with stdin open
       """
 
 
+  @skip3
   Scenario: Closing input
     Given I am using a TTY
     And I run "/bin/cat" in a docker container with stdin open

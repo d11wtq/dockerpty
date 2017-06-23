@@ -23,17 +23,29 @@ language: python
 matrix:
   include:
     - python: "2.7"
-      env: REQUIREMENTS=requirements-dev.txt VENV=python2.7
+      env: REQUIREMENTS=requirements-dev.txt
       services:
         - docker
     - python: "pypy"
-      env: REQUIREMENTS=requirements-dev.txt VENV=pypy
+      env: REQUIREMENTS=requirements-dev.txt
+      group: deprecated-2017Q2
       services:
         - docker
     - python: "3.4"
-      env: REQUIREMENTS=requirements3-dev.txt VENV=python3.4
+      env: REQUIREMENTS=requirements3-dev.txt
+      services:
+        - docker
+    - python: "3.5"
+      env: REQUIREMENTS=requirements3-dev.txt
+      services:
+        - docker
+    - python: "3.6"
+      env: REQUIREMENTS=requirements3-dev.txt
       services:
         - docker
 
 install: pip install -r $REQUIREMENTS
-script: py.test -q tests && behave -c --no-capture -q
+script:
+  - py.test -q tests
+  - behave -c --no-capture -q
+cache: pip

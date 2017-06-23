@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from behave import then, given, when
-from expects import expect, equal, be_true, be_false
+from expects import expect, equal, be_true, be_false, match
 import tests.util as util
 
 import dockerpty
@@ -195,6 +195,14 @@ def step_impl(ctx):
     actual = util.read_printable(ctx.pty).splitlines()
     wanted = ctx.text.splitlines()
     expect(actual[-len(wanted):]).to(equal(wanted))
+
+
+@then('I will see output matching')
+def step_impl(ctx):
+    # you should check `actual` when tests fail
+    actual = util.read_printable(ctx.pty)
+    wanted = ctx.text
+    expect(actual).to(match(wanted))
 
 
 @then('The PTY will be closed cleanly')

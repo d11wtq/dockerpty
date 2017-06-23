@@ -24,9 +24,9 @@ Feature: Attaching to a docker container non-interactively
     Given I am using a TTY
     And I run "/bin/tail -f -n1 /etc/passwd" in a docker container
     When I start dockerpty
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
 
 
@@ -34,10 +34,12 @@ Feature: Attaching to a docker container non-interactively
     Given I am using a TTY
     And I run "sh -c 'tail -f -n1 /etc/passwd 1>&2'" in a docker container
     When I start dockerpty
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
+
+
 
 
   Scenario: Ignoring input
@@ -45,8 +47,8 @@ Feature: Attaching to a docker container non-interactively
     And I run "/bin/tail -n1 -f /etc/passwd" in a docker container
     When I start dockerpty
     And I press ENTER
-    Then I will see the output
+    Then I will see output matching
       """
-      nobody:x:99:99:nobody:/home:/bin/false
+      ^nobody:x:\d+:\d+:nobody:/home:/bin/false$
       """
     And The container will still be running
