@@ -3,8 +3,7 @@
 Provides the functionality needed to operate the pseudo-tty (PTY) allocated to
 a docker container, using the Python client.
 
-[![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)]
-(https://travis-ci.org/d11wtq/dockerpty)
+[![Build Status](https://travis-ci.org/d11wtq/dockerpty.svg?branch=master)](https://travis-ci.org/d11wtq/dockerpty)
 
 ## Installation
 
