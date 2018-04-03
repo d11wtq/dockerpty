@@ -146,7 +146,7 @@ class RunOperation(Operation):
             pumps.append(io.Pump(pty_stderr, io.Stream(self.stderr), propagate_close=False))
 
         if not self._container_info()['State']['Running']:
-            self.client.start(self.container, **kwargs)
+            self.container.start(**kwargs)
 
         return pumps
 
@@ -175,9 +175,8 @@ class RunOperation(Operation):
 
         def attach_socket(key):
             if info['Config']['Attach{0}'.format(key.capitalize())]:
-                socket = self.client.attach_socket(
-                    self.container,
-                    {key: 1, 'stream': 1, 'logs': self.logs},
+                socket = self.container.attach_socket(
+                    params={key: 1, 'stream': 1, 'logs': self.logs}
                 )
                 stream = io.Stream(socket)
 
@@ -194,19 +193,19 @@ class RunOperation(Operation):
         """
         resize pty within container
         """
-        self.client.resize(self.container, height=height, width=width)
+        self.container.resize(height=height, width=width)
 
     def _container_info(self):
         """
         Thin wrapper around client.inspect_container().
         """
-
-        return self.client.inspect_container(self.container)
+        self.container.reload()
+        return self.container.attrs
 
 
 def exec_create(client, container, command, interactive=True):
-    exec_id = client.exec_create(container, command, tty=interactive, stdin=interactive)
-    return exec_id
+    exec_id = client.api.exec_create(container, command, tty=interactive, stdin=interactive)
+    return exec_id['Id']
 
 
 class ExecOperation(Operation):
@@ -257,7 +256,7 @@ class ExecOperation(Operation):
         """
         Return a single socket which is processing all I/O to exec
         """
-        socket = self.client.exec_start(self.exec_id, socket=True, tty=self.interactive)
+        socket = self.client.api.exec_start(self.exec_id, socket=True, tty=self.interactive)
         stream = io.Stream(socket)
         if self.is_process_tty():
             return stream
@@ -268,7 +267,7 @@ class ExecOperation(Operation):
         """
         resize pty of an execed process
         """
-        self.client.exec_resize(self.exec_id, height=height, width=width)
+        self.client.api.exec_resize(self.exec_id, height=height, width=width)
 
     def is_process_tty(self):
         """
@@ -281,7 +280,7 @@ class ExecOperation(Operation):
         Caching wrapper around client.exec_inspect
         """
         if self._info is None:
-            self._info = self.client.exec_inspect(self.exec_id)
+            self._info = self.client.api.exec_inspect(self.exec_id)
         return self._info
 
 
