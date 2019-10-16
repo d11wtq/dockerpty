@@ -16,7 +16,7 @@ pip install dockerpty
 
 Dependencies:
 
-  * docker-py>=0.3.2
+  * docker>=4
 
 However, this library does not explicitly declare this dependency in PyPi for a
 number of reasons. It is assumed you have it installed.
@@ -32,7 +32,7 @@ This obviously only works when run in a terminal.
 import docker
 import dockerpty
 
-client = docker.Client()
+client = docker.APIClient()
 container = client.create_container(
     image='busybox:latest',
     stdin_open=True,
